@@ -1,6 +1,6 @@
 [project]
 name = "localban"
-version = "0.1.0"
+version = "1.0.0"
 description = "Lightweight, offline-first personal kanban board inspired by Trello"
 readme = "README.md"
 license = "MIT"

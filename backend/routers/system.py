@@ -3,7 +3,7 @@ import signal
 import threading
 import time
 from fastapi import APIRouter
-from backend.config import SESSION_TOKEN
+from backend.config import SESSION_TOKEN, APP_VERSION
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
@@ -19,7 +19,7 @@ def get_system_status():
     return {
         "status": "running",
         "app": "LocalBan",
-        "version": "0.1.0"
+        "version": APP_VERSION
     }
 
 @router.get("/token")

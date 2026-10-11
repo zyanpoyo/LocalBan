@@ -33,6 +33,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenArchive, onOpenShutdown, a
         <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-indigo-500 bg-clip-text text-transparent">
           LocalBan
         </h1>
+        <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold border border-indigo-100/80">
+          v1.0.0
+        </span>
         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">
           オフライン
         </span>

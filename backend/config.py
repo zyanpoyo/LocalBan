@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 APP_NAME = "LocalBan"
+APP_VERSION = "1.0.0"
 
 def get_app_dir() -> Path:
     """データディレクトリを取得し、必要フォルダを生成する。

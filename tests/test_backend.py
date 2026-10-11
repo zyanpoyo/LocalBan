@@ -267,5 +267,11 @@ def test_initial_data_has_default_cards(client, auth_headers):
     assert len(c_done["labels"]) == 1
     assert c_done["labels"][0]["name"] == "優先度: 低"
 
-
-
+# 12. システム情報 & バージョン検証
+def test_system_status(client, auth_headers):
+    res = client.get("/api/system/status", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "running"
+    assert data["app"] == "LocalBan"
+    assert data["version"] == "1.0.0"

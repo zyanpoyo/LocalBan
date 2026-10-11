@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from backend.config import resource_path, SESSION_TOKEN
+from backend.config import resource_path, SESSION_TOKEN, APP_VERSION
 from backend.security import SecurityMiddleware
 from backend.database import init_database
 from backend.routers import lists, cards, attachments, labels, system
@@ -21,7 +21,7 @@ def create_app() -> FastAPI:
     
     app = FastAPI(
         title="LocalBan API",
-        version="0.1.0",
+        version=APP_VERSION,
         docs_url=docs_url,
         redoc_url=redoc_url,
         openapi_url=openapi_url
