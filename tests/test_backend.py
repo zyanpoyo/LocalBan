@@ -2,19 +2,7 @@ import pytest
 import os
 import shutil
 from pathlib import Path
-from fastapi.testclient import TestClient
-from backend.app import create_app
-from backend.config import SESSION_TOKEN, get_attachments_dir
-
-@pytest.fixture(scope="module")
-def client():
-    app = create_app()
-    with TestClient(app) as test_client:
-        yield test_client
-
-@pytest.fixture
-def auth_headers():
-    return {"X-LocalBan-Token": SESSION_TOKEN}
+from backend.config import SESSION_TOKEN, get_attachments_dir, get_app_dir, get_db_path
 
 # 1. セキュリティテスト
 def test_security_token_required(client):
@@ -199,4 +187,85 @@ def test_card_due_date_and_cover_clear(client, auth_headers):
     # DB再取得でもカバーがNoneであることを確認
     res_get_cover = client.get(f"/api/cards/{card_id}", headers=auth_headers)
     assert res_get_cover.json()["cover_attachment_id"] is None
+
+# 7. テストデータ隔離と本番環境非汚染の検証
+def test_data_isolation_from_production(client, auth_headers):
+    # テスト環境のデータディレクトリが本番環境（APPDATA/LocalBan）と完全に分離されていることを検証
+    current_data_dir = get_app_dir()
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        prod_dir = Path(appdata) / "LocalBan"
+        assert current_data_dir != prod_dir, "テスト用データディレクトリが本番APPDATAと同一です"
+
+    # テストでリストを作成
+    res = client.post("/api/lists", json={"title": "完全隔離テストリスト"}, headers=auth_headers)
+    assert res.status_code == 201
+
+    # テスト環境のDBパスを取得
+    test_db = get_db_path()
+    assert test_db.is_relative_to(current_data_dir)
+
+    # 本番DBが存在する場合、本番DBには「完全隔離テストリスト」が存在しないことを確認
+    if appdata:
+        prod_db = prod_dir / "localban.db"
+        if prod_db.exists():
+            import sqlite3
+            conn = sqlite3.connect(str(prod_db))
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM lists WHERE title = '完全隔離テストリスト'")
+            count = cur.fetchone()[0]
+            conn.close()
+            assert count == 0, "本番DBにテストデータが漏洩しています"
+
+# 8. 初回起動時の初期リスト・初期カード自動登録の検証
+def test_initial_data_has_default_cards(client, auth_headers):
+    # 初期リストの検証
+    res_lists = client.get("/api/lists", headers=auth_headers)
+    assert res_lists.status_code == 200
+    lists = res_lists.json()
+    assert len(lists) == 3
+    list_map = {l["title"]: l["id"] for l in lists}
+    assert "ToDo" in list_map
+    assert "進行中" in list_map
+    assert "完了" in list_map
+
+    # 初期カードの検証
+    res_cards = client.get("/api/cards", headers=auth_headers)
+    assert res_cards.status_code == 200
+    cards = res_cards.json()
+    assert len(cards) == 3
+
+    # 各リストに1枚ずつカードが存在することを確認
+    todo_cards = [c for c in cards if c["list_id"] == list_map["ToDo"]]
+    doing_cards = [c for c in cards if c["list_id"] == list_map["進行中"]]
+    done_cards = [c for c in cards if c["list_id"] == list_map["完了"]]
+
+    assert len(todo_cards) == 1
+    assert len(doing_cards) == 1
+    assert len(done_cards) == 1
+
+    # 各カードの詳細（タイトル、説明、チェックリスト、ラベル）を検証
+    c_todo = todo_cards[0]
+    assert "LocalBanへようこそ" in c_todo["title"]
+    assert "基本操作" in c_todo["description"]
+    assert len(c_todo["checklists"]) == 1
+    assert len(c_todo["checklists"][0]["items"]) == 3
+    assert len(c_todo["labels"]) == 1
+    assert c_todo["labels"][0]["name"] == "アイデア"
+
+    c_doing = doing_cards[0]
+    assert "ドラッグ＆ドロップ" in c_doing["title"]
+    assert len(c_doing["checklists"]) == 1
+    assert len(c_doing["checklists"][0]["items"]) == 2
+    assert len(c_doing["labels"]) == 1
+    assert c_doing["labels"][0]["name"] == "優先度: 中"
+
+    c_done = done_cards[0]
+    assert "完了したタスク" in c_done["title"]
+    assert len(c_done["checklists"]) == 1
+    assert len(c_done["checklists"][0]["items"]) == 2
+    assert len(c_done["labels"]) == 1
+    assert c_done["labels"][0]["name"] == "優先度: 低"
+
+
 

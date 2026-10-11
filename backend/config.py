@@ -8,12 +8,18 @@ from typing import Optional
 APP_NAME = "LocalBan"
 
 def get_app_dir() -> Path:
-    """%APPDATA%/LocalBan ディレクトリを取得し、必要フォルダを生成する"""
-    app_data = os.environ.get("APPDATA")
-    if app_data:
-        base_dir = Path(app_data) / APP_NAME
+    """データディレクトリを取得し、必要フォルダを生成する。
+    環境変数 LOCALBAN_DATA_DIR が設定されていればそれを最優先とする（テスト・環境分離用）。
+    """
+    custom_dir = os.environ.get("LOCALBAN_DATA_DIR")
+    if custom_dir:
+        base_dir = Path(custom_dir)
     else:
-        base_dir = Path.home() / f".{APP_NAME.lower()}"
+        app_data = os.environ.get("APPDATA")
+        if app_data:
+            base_dir = Path(app_data) / APP_NAME
+        else:
+            base_dir = Path.home() / f".{APP_NAME.lower()}"
     
     # 必須サブディレクトリを生成
     (base_dir / "attachments").mkdir(parents=True, exist_ok=True)
@@ -21,6 +27,7 @@ def get_app_dir() -> Path:
     (base_dir / "backups").mkdir(parents=True, exist_ok=True)
     
     return base_dir
+
 
 def get_attachments_dir() -> Path:
     return get_app_dir() / "attachments"
@@ -69,17 +76,26 @@ def init_logging_redirect() -> None:
 # サーバー起動ごとのランダムセッショントークン
 SESSION_TOKEN = secrets.token_hex(16)
 
-SERVER_INFO_FILE = get_app_dir() / "server.json"
-LOCK_FILE = get_app_dir() / "run.lock"
+def get_server_info_file() -> Path:
+    return get_app_dir() / "server.json"
+
+def get_lock_file() -> Path:
+    return get_app_dir() / "run.lock"
+
+# モジュールレベル互換用定義
+SERVER_INFO_FILE = get_server_info_file()
+LOCK_FILE = get_lock_file()
 
 def save_server_info(port: int, token: str) -> None:
-    with open(SERVER_INFO_FILE, "w", encoding="utf-8") as f:
+    target_file = get_server_info_file()
+    with open(target_file, "w", encoding="utf-8") as f:
         json.dump({"port": port, "token": token, "pid": os.getpid()}, f, indent=2)
 
 def load_server_info() -> Optional[dict]:
-    if SERVER_INFO_FILE.exists():
+    target_file = get_server_info_file()
+    if target_file.exists():
         try:
-            with open(SERVER_INFO_FILE, "r", encoding="utf-8") as f:
+            with open(target_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return None
@@ -87,9 +103,11 @@ def load_server_info() -> Optional[dict]:
 
 def cleanup_server_info() -> None:
     try:
-        if SERVER_INFO_FILE.exists():
-            SERVER_INFO_FILE.unlink()
-        if LOCK_FILE.exists():
-            LOCK_FILE.unlink()
+        s_file = get_server_info_file()
+        l_file = get_lock_file()
+        if s_file.exists():
+            s_file.unlink()
+        if l_file.exists():
+            l_file.unlink()
     except Exception:
         pass

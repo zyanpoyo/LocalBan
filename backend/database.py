@@ -126,16 +126,120 @@ def init_database() -> None:
             ]
             cursor.executemany("INSERT INTO labels (id, name, color) VALUES (?, ?, ?);", preset_labels)
 
-        # 3. 新規DBの場合、サンプルカンバンリストを作成（ToDo, 進行中, 完了）
+        # 3. 新規DBの場合、サンプルカンバンリストを作成（ToDo, 進行中, 完了）および初期カードを投入
         cursor.execute("SELECT COUNT(*) as cnt FROM lists;")
         if cursor.fetchone()["cnt"] == 0:
             now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            todo_list_id = str(uuid.uuid4())
+            doing_list_id = str(uuid.uuid4())
+            done_list_id = str(uuid.uuid4())
             default_lists = [
-                (str(uuid.uuid4()), "ToDo", 1000.0, now, now),
-                (str(uuid.uuid4()), "進行中", 2000.0, now, now),
-                (str(uuid.uuid4()), "完了", 3000.0, now, now),
+                (todo_list_id, "ToDo", 1000.0, now, now),
+                (doing_list_id, "進行中", 2000.0, now, now),
+                (done_list_id, "完了", 3000.0, now, now),
             ]
             cursor.executemany("INSERT INTO lists (id, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?);", default_lists)
+
+            # ラベルIDマップ取得
+            cursor.execute("SELECT id, name FROM labels;")
+            label_map = {row["name"]: row["id"] for row in cursor.fetchall()}
+
+            # 各リストに対応する初期カード投入（各1枚）
+            card_todo_id = str(uuid.uuid4())
+            card_doing_id = str(uuid.uuid4())
+            card_done_id = str(uuid.uuid4())
+
+            default_cards = [
+                (
+                    card_todo_id,
+                    todo_list_id,
+                    "LocalBanへようこそ！ 基本操作を試してみましょう",
+                    "LocalBan はローカル環境で動作するシンプルなカンバンボードです。\n\n"
+                    "**基本操作:**\n"
+                    "- カードをクリックすると詳細画面が開き、説明の編集やチェックリストの作成ができます\n"
+                    "- カードをドラッグ＆ドロップして、右側の「進行中」や「完了」リストへ移動できます\n"
+                    "- リスト下部の「+ カードを追加」から新しいカードを作成できます",
+                    1000.0,
+                    now,
+                    now
+                ),
+                (
+                    card_doing_id,
+                    doing_list_id,
+                    "ドラッグ＆ドロップでカードを動かす",
+                    "作業中のタスクは「進行中」リストに配置します。\n\n"
+                    "**操作ヒント:**\n"
+                    "- カードをつかんで上下にドラッグすると、同じリスト内での並び順を変更できます\n"
+                    "- 横にドラッグすると、他のリストへスムーズに移動できます\n"
+                    "- チェックリストのアイテムを完了にすると、進捗状況がカード上に表示されます",
+                    1000.0,
+                    now,
+                    now
+                ),
+                (
+                    card_done_id,
+                    done_list_id,
+                    "完了したタスクを整理する",
+                    "終わったタスクは「完了」リストに移動して管理します。\n\n"
+                    "**完了後のアクション:**\n"
+                    "- カードの右上メニューや詳細画面から「アーカイブ」を行うと、ボード上を整理できます\n"
+                    "- アーカイブされたカードはヘッダー右上の「アーカイブ」ボタンからいつでも確認・復元できます",
+                    1000.0,
+                    now,
+                    now
+                )
+            ]
+            cursor.executemany(
+                "INSERT INTO cards (id, list_id, title, description, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);",
+                default_cards
+            )
+
+            # チェックリストおよびアイテム投入
+            # 1. ToDo カード用チェックリスト
+            cl_todo_id = str(uuid.uuid4())
+            cursor.execute("INSERT INTO checklists (id, card_id, title, position) VALUES (?, ?, ?, ?);", (cl_todo_id, card_todo_id, "はじめてのステップ", 1000.0))
+            cursor.executemany(
+                "INSERT INTO checklist_items (id, checklist_id, content, is_completed, position) VALUES (?, ?, ?, ?, ?);",
+                [
+                    (str(uuid.uuid4()), cl_todo_id, "このカードをクリックして詳細を開く", 1, 1000.0),
+                    (str(uuid.uuid4()), cl_todo_id, "カードをドラッグして「進行中」へ移動する", 0, 2000.0),
+                    (str(uuid.uuid4()), cl_todo_id, "新しいカードを自分で作成してみる", 0, 3000.0),
+                ]
+            )
+
+            # 2. 進行中 カード用チェックリスト
+            cl_doing_id = str(uuid.uuid4())
+            cursor.execute("INSERT INTO checklists (id, card_id, title, position) VALUES (?, ?, ?, ?);", (cl_doing_id, card_doing_id, "作業チェック", 1000.0))
+            cursor.executemany(
+                "INSERT INTO checklist_items (id, checklist_id, content, is_completed, position) VALUES (?, ?, ?, ?, ?);",
+                [
+                    (str(uuid.uuid4()), cl_doing_id, "タスクに着手する", 1, 1000.0),
+                    (str(uuid.uuid4()), cl_doing_id, "完了したら「完了」リストへ移動する", 0, 2000.0),
+                ]
+            )
+
+            # 3. 完了 カード用チェックリスト
+            cl_done_id = str(uuid.uuid4())
+            cursor.execute("INSERT INTO checklists (id, card_id, title, position) VALUES (?, ?, ?, ?);", (cl_done_id, card_done_id, "完了確認", 1000.0))
+            cursor.executemany(
+                "INSERT INTO checklist_items (id, checklist_id, content, is_completed, position) VALUES (?, ?, ?, ?, ?);",
+                [
+                    (str(uuid.uuid4()), cl_done_id, "タスクの完了確認", 1, 1000.0),
+                    (str(uuid.uuid4()), cl_done_id, "必要に応じてアーカイブする", 1, 2000.0),
+                ]
+            )
+
+            # ラベル紐付け
+            card_labels = []
+            if "アイデア" in label_map:
+                card_labels.append((card_todo_id, label_map["アイデア"]))
+            if "優先度: 中" in label_map:
+                card_labels.append((card_doing_id, label_map["優先度: 中"]))
+            if "優先度: 低" in label_map:
+                card_labels.append((card_done_id, label_map["優先度: 低"]))
+
+            if card_labels:
+                cursor.executemany("INSERT INTO card_labels (card_id, label_id) VALUES (?, ?);", card_labels)
 
         # 4. バージョン記録
         cursor.execute(f"PRAGMA user_version = {CURRENT_SCHEMA_VERSION};")
