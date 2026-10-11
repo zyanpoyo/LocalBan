@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+.eslintcache
+
+# PyInstaller / Build
+build/
+dist/
+*.exe
+*.manifest
+*.spec
+
+# Toreyo Local Data / Logs (in dev environment)
+*.db
+*.db-wal
+*.db-shm
+*.lock
+server.json
+logs/
+attachments/
+backups/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
