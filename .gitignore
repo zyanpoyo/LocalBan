@@ -38,3 +38,11 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# Security / Secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+

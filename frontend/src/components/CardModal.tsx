@@ -489,9 +489,21 @@ export const CardModal: React.FC<CardModalProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="p-3.5 min-h-24 bg-slate-50 border border-slate-200 rounded-xl text-sm prose prose-sm max-w-none prose-slate">
+                <div className="p-3.5 min-h-24 bg-slate-50 border border-slate-200 rounded-xl text-sm prose prose-sm max-w-none prose-slate break-words">
                   {description.trim() ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        a: ({ ...props }) => (
+                          <a
+                            {...props}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 underline hover:text-indigo-800"
+                          />
+                        ),
+                      }}
+                    >
                       {description}
                     </ReactMarkdown>
                   ) : (

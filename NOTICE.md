@@ -87,7 +87,7 @@
 - **著作権**: Copyright (c) 2020 Titus Wormer <tituswormer@gmail.com>
 - **URL**: https://github.com/remarkjs/remark-gfm
 
-### Tailwind CSS / @tailwindcss/vite
+### Tailwind CSS / @tailwindcss/vite / @tailwindcss/typography
 - **ライセンス**: MIT License
 - **著作権**: Copyright (c) Tailwind Labs, Inc.
 - **URL**: https://github.com/tailwindlabs/tailwindcss
