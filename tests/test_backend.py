@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 from pathlib import Path
-from backend.config import SESSION_TOKEN, get_attachments_dir, get_app_dir, get_db_path
+from backend.config import SESSION_TOKEN, get_attachments_dir, get_app_dir, get_db_path, APP_VERSION
 
 # 1. セキュリティテスト
 def test_security_token_required(client):
@@ -274,4 +274,5 @@ def test_system_status(client, auth_headers):
     data = res.json()
     assert data["status"] == "running"
     assert data["app"] == "LocalBan"
-    assert data["version"] == "1.0.0"
+    assert data["version"] == "1.0.1"
+    assert data["version"] == APP_VERSION

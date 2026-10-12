@@ -18,10 +18,10 @@ def get_app_version(root_dir: Path) -> str:
         try:
             with open(pyproject_path, "rb") as f:
                 data = tomllib.load(f)
-                return data.get("project", {}).get("version", "1.0.0")
+                return data.get("project", {}).get("version", "1.0.1")
         except Exception:
             pass
-    return "1.0.0"
+    return "1.0.1"
 
 def create_dist_zip(root_dir: Path, exe_path: Path):
     # 最新の uninstall.bat を安全に再生成
