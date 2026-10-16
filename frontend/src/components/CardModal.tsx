@@ -110,11 +110,13 @@ type MarkdownSegment =
   | { type: 'note'; variant: NoteVariant; content: string };
 
 const MARKDOWN_SHORTCUT_ITEMS: {
-  type: MarkdownFormatType;
+  type: string;
   label: string;
   shortcut: string;
   syntax: string;
 }[] = [
+  { type: 'toggle-preview', label: '編集 ⇄ プレビュー切替', shortcut: 'Ctrl+Shift+P', syntax: 'モード切替' },
+  { type: 'save-desc', label: '説明文を保存', shortcut: 'Ctrl+Enter', syntax: '保存確定' },
   { type: 'bold', label: '太字', shortcut: 'Ctrl+B', syntax: '**太字**' },
   { type: 'italic', label: '斜体', shortcut: 'Ctrl+I', syntax: '*斜体*' },
   { type: 'strikethrough', label: '取り消し線', shortcut: 'Ctrl+Shift+X', syntax: '~~取消~~' },
@@ -242,6 +244,7 @@ export const CardModal: React.FC<CardModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCurrentCard(card);
@@ -318,6 +321,20 @@ export const CardModal: React.FC<CardModalProps> = ({
     setCurrentCard(updated);
     onCardUpdated(updated);
     setIsEditingDesc(false);
+  };
+
+  // 編集 ⇄ プレビュー モードのトグル切替 (Ctrl+Shift+P)
+  const toggleDescMode = () => {
+    if (descMode === 'edit') {
+      setDescMode('preview');
+      setShowShortcutHelp(false);
+    } else {
+      setDescMode('edit');
+      setIsEditingDesc(true);
+      requestAnimationFrame(() => {
+        descTextareaRef.current?.focus();
+      });
+    }
   };
 
   // Markdown 装飾・テンプレート挿入ヘルパー
@@ -438,8 +455,22 @@ export const CardModal: React.FC<CardModalProps> = ({
   const handleDescKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
 
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.currentTarget.blur();
+      return;
+    }
+
     const isMod = e.ctrlKey || e.metaKey;
     if (!isMod || e.altKey) return;
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      void handleSaveDescription();
+      return;
+    }
 
     const key = e.key.toLowerCase();
 
@@ -458,7 +489,11 @@ export const CardModal: React.FC<CardModalProps> = ({
         applyMarkdownFormat('link');
       }
     } else {
-      if (key === 'x') {
+      if (key === 'p') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleDescMode();
+      } else if (key === 'x') {
         e.preventDefault();
         applyMarkdownFormat('strikethrough');
       } else if (key === 'k' || key === 'c') {
@@ -632,6 +667,107 @@ export const CardModal: React.FC<CardModalProps> = ({
     onClose();
   };
 
+  // 安全なモーダル終了ハンドラ (未保存の説明文があれば自動保存)
+  const handleSafeClose = async () => {
+    if (description !== (currentCard.description || '')) {
+      try {
+        const updated = await updateCard(currentCard.id, { description });
+        onCardUpdated(updated);
+      } catch (err) {
+        console.error('Failed to auto-save description on close:', err);
+      }
+    }
+    onClose();
+  };
+
+  // モーダル全体のキーボードショートカット
+  useEffect(() => {
+    const handleModalKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.defaultPrevented) return;
+
+      const isMod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      // 1. Ctrl+Shift+P: 編集 ⇄ プレビュー モード切替 (モーダル内どこでも有効)
+      if (isMod && e.shiftKey && !e.altKey && key === 'p') {
+        e.preventDefault();
+        toggleDescMode();
+        return;
+      }
+
+      // 2. Ctrl+Enter: 説明文の変更を保存
+      if (isMod && !e.shiftKey && !e.altKey && e.key === 'Enter') {
+        if (isEditingDesc || description !== (currentCard.description || '')) {
+          e.preventDefault();
+          void handleSaveDescription();
+          return;
+        }
+      }
+
+      const target = (e.composedPath?.()[0] || e.target) as HTMLElement | null;
+      const isInputFocused =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable ||
+          target.matches?.(':read-write, select, input, textarea'));
+
+      // 3. Escape: 段階的に閉じる
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (previewImageUrl) {
+          setPreviewImageUrl(null);
+        } else if (showShortcutHelp) {
+          setShowShortcutHelp(false);
+        } else if (showCopyDialog) {
+          setShowCopyDialog(false);
+        } else if (showAddChecklist) {
+          setShowAddChecklist(false);
+        } else if (isInputFocused && target) {
+          target.blur();
+        } else {
+          void handleSafeClose();
+        }
+        return;
+      }
+
+      // 入力欄フォーカス中は単一キーショートカットを無効化
+      if (isInputFocused || isMod || e.altKey || e.shiftKey) return;
+
+      // 4. モーダル内クイックショートカット
+      if (key === 'e') {
+        e.preventDefault();
+        setDescMode('edit');
+        setIsEditingDesc(true);
+        requestAnimationFrame(() => {
+          descTextareaRef.current?.focus();
+        });
+      } else if (key === 'd') {
+        e.preventDefault();
+        dateInputRef.current?.focus();
+        try {
+          dateInputRef.current?.showPicker?.();
+        } catch {
+          // ブラウザが showPicker 未対応の場合は focus のみ
+        }
+      } else if (key === 't' || e.key === '-') {
+        e.preventDefault();
+        setShowAddChecklist(true);
+      } else if (key === 'c') {
+        e.preventDefault();
+        setShowCopyDialog(true);
+      } else if (key === 'a') {
+        e.preventDefault();
+        void handleArchive();
+      }
+    };
+
+    window.addEventListener('keydown', handleModalKeyDown);
+    return () => window.removeEventListener('keydown', handleModalKeyDown);
+  });
+
   return (
     <div
       className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
@@ -652,8 +788,10 @@ export const CardModal: React.FC<CardModalProps> = ({
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={handleTitleBlur}
                 onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                   if (e.key === 'Enter') handleTitleBlur();
                   if (e.key === 'Escape') {
+                    e.stopPropagation();
                     setTitle(currentCard.title);
                     setIsEditingTitle(false);
                   }
@@ -665,6 +803,7 @@ export const CardModal: React.FC<CardModalProps> = ({
               <h2
                 onClick={() => setIsEditingTitle(true)}
                 className="text-lg sm:text-xl font-bold text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors"
+                title="クリックしてタイトルを編集"
               >
                 {currentCard.title}
               </h2>
@@ -677,7 +816,8 @@ export const CardModal: React.FC<CardModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => void handleSafeClose()}
+            title="閉じる (Escape)"
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -720,7 +860,11 @@ export const CardModal: React.FC<CardModalProps> = ({
                     onClick={() => {
                       setDescMode('edit');
                       setIsEditingDesc(true);
+                      requestAnimationFrame(() => {
+                        descTextareaRef.current?.focus();
+                      });
                     }}
+                    title="編集モード (Ctrl+Shift+P で切替 / e でフォーカス)"
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                       descMode === 'edit' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'
                     }`}
@@ -733,6 +877,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                       setDescMode('preview');
                       setShowShortcutHelp(false);
                     }}
+                    title="プレビュー切替 (Ctrl+Shift+P)"
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                       descMode === 'preview' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'
                     }`}
@@ -890,110 +1035,143 @@ export const CardModal: React.FC<CardModalProps> = ({
                     className="w-full min-h-[280px] max-h-[60vh] p-3.5 text-sm leading-relaxed bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400/20 transition-all font-mono resize-y [field-sizing:content]"
                   />
                   {isEditingDesc && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleSaveDescription}
-                        className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
-                      >
-                        保存
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDescription(currentCard.description || '');
-                          setIsEditingDesc(false);
-                        }}
-                        className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
-                      >
-                        キャンセル
-                      </button>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleSaveDescription}
+                          title="説明を保存 (Ctrl+Enter)"
+                          className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDescription(currentCard.description || '');
+                            setIsEditingDesc(false);
+                          }}
+                          className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                      <span className="text-[10px] text-slate-400 hidden sm:inline">
+                        <kbd className="font-mono font-semibold text-slate-500">Ctrl+Shift+P</kbd> プレビュー切替 / <kbd className="font-mono font-semibold text-slate-500">Ctrl+Enter</kbd> 保存
+                      </span>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="p-4 min-h-[280px] bg-slate-50 border border-slate-200 rounded-xl text-sm space-y-3 break-words">
-                  {description.trim() ? (
-                    parseMarkdownSegments(description).map((seg, idx) => {
-                      if (seg.type === 'note') {
-                        const noteStyles: Record<
-                          NoteVariant,
-                          { container: string; icon: React.ReactNode }
-                        > = {
-                          info: {
-                            container:
-                              'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950',
-                            icon: (
-                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                            ),
-                          },
-                          warn: {
-                            container:
-                              'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950',
-                            icon: (
-                              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                            ),
-                          },
-                          alert: {
-                            container:
-                              'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950',
-                            icon: (
-                              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                            ),
-                          },
-                        };
-                        const style = noteStyles[seg.variant];
+                <div className="space-y-2">
+                  <div className="p-4 min-h-[280px] bg-slate-50 border border-slate-200 rounded-xl text-sm space-y-3 break-words">
+                    {description.trim() ? (
+                      parseMarkdownSegments(description).map((seg, idx) => {
+                        if (seg.type === 'note') {
+                          const noteStyles: Record<
+                            NoteVariant,
+                            { container: string; icon: React.ReactNode }
+                          > = {
+                            info: {
+                              container:
+                                'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950',
+                              icon: (
+                                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              ),
+                            },
+                            warn: {
+                              container:
+                                'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950',
+                              icon: (
+                                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                              ),
+                            },
+                            alert: {
+                              container:
+                                'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950',
+                              icon: (
+                                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                              ),
+                            },
+                          };
+                          const style = noteStyles[seg.variant];
+
+                          return (
+                            <div
+                              key={idx}
+                              className={`p-3 rounded-r-lg flex items-start gap-2.5 ${style.container}`}
+                            >
+                              {style.icon}
+                              <div className="prose prose-sm max-w-none prose-slate break-words flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    a: ({ ...props }) => (
+                                      <a
+                                        {...props}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-indigo-600 underline hover:text-indigo-800"
+                                      />
+                                    ),
+                                  }}
+                                >
+                                  {seg.content}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          );
+                        }
 
                         return (
                           <div
                             key={idx}
-                            className={`p-3 rounded-r-lg flex items-start gap-2.5 ${style.container}`}
+                            className="prose prose-sm max-w-none prose-slate break-words"
                           >
-                            {style.icon}
-                            <div className="prose prose-sm max-w-none prose-slate break-words flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                  a: ({ ...props }) => (
-                                    <a
-                                      {...props}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-indigo-600 underline hover:text-indigo-800"
-                                    />
-                                  ),
-                                }}
-                              >
-                                {seg.content}
-                              </ReactMarkdown>
-                            </div>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                a: ({ ...props }) => (
+                                  <a
+                                    {...props}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 underline hover:text-indigo-800"
+                                  />
+                                ),
+                              }}
+                            >
+                              {seg.content}
+                            </ReactMarkdown>
                           </div>
                         );
-                      }
-
-                      return (
-                        <div
-                          key={idx}
-                          className="prose prose-sm max-w-none prose-slate break-words"
+                      })
+                    ) : (
+                      <span className="text-slate-400 italic">説明はありません。</span>
+                    )}
+                  </div>
+                  {description !== (currentCard.description || '') && (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleSaveDescription}
+                          title="説明を保存 (Ctrl+Enter)"
+                          className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
                         >
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              a: ({ ...props }) => (
-                                <a
-                                  {...props}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-indigo-600 underline hover:text-indigo-800"
-                                />
-                              ),
-                            }}
-                          >
-                            {seg.content}
-                          </ReactMarkdown>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <span className="text-slate-400 italic">説明はありません。</span>
+                          保存
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDescription(currentCard.description || '');
+                            setIsEditingDesc(false);
+                          }}
+                          className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          変更を破棄
+                        </button>
+                      </div>
+                      <span className="text-[10px] text-slate-400 hidden sm:inline">
+                        <kbd className="font-mono font-semibold text-slate-500">Ctrl+Shift+P</kbd> 編集に戻る / <kbd className="font-mono font-semibold text-slate-500">Ctrl+Enter</kbd> 保存
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
@@ -1074,6 +1252,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                         setNewItemTexts((prev) => ({ ...prev, [cl.id]: e.target.value }))
                       }
                       onKeyDown={(e) => {
+                        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           handleAddChecklistItem(cl.id);
@@ -1224,11 +1403,12 @@ export const CardModal: React.FC<CardModalProps> = ({
               <div className="space-y-1.5">
                 <div className="flex gap-1.5">
                   <input
+                    ref={dateInputRef}
                     type="date"
                     value={dueDate ? dueDate.substring(0, 10) : ''}
                     onChange={(e) => handleDateChange(e.target.value)}
                     className="flex-1 min-w-[110px] px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-hidden focus:border-indigo-500"
-                    title="期限日"
+                    title="期限日 (d キーでフォーカス)"
                   />
                   <input
                     type="time"
@@ -1315,6 +1495,17 @@ export const CardModal: React.FC<CardModalProps> = ({
                     type="text"
                     value={newChecklistTitle}
                     onChange={(e) => setNewChecklistTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void handleAddChecklist();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowAddChecklist(false);
+                      }
+                    }}
                     placeholder="タイトル..."
                     autoFocus
                     className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-hidden"
@@ -1337,6 +1528,7 @@ export const CardModal: React.FC<CardModalProps> = ({
               ) : (
                 <button
                   onClick={() => setShowAddChecklist(true)}
+                  title="チェックリストを追加 (t または -)"
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1382,6 +1574,7 @@ export const CardModal: React.FC<CardModalProps> = ({
               ) : (
                 <button
                   onClick={() => setShowCopyDialog(true)}
+                  title="カードを複製 (c)"
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
                 >
                   <Copy className="w-4 h-4 text-slate-500" />
@@ -1392,6 +1585,7 @@ export const CardModal: React.FC<CardModalProps> = ({
               {/* アーカイブ */}
               <button
                 onClick={handleArchive}
+                title="アーカイブ (a)"
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-colors cursor-pointer border border-amber-200/60"
               >
                 <Archive className="w-4 h-4 text-amber-600" />

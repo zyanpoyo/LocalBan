@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Archive, Power, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Archive, Power, Check, Loader2, AlertCircle, Keyboard } from 'lucide-react';
 import { onSaveStatusChange } from '../api';
 import { SaveStatus } from '../types';
 
 interface HeaderProps {
   onOpenArchive: () => void;
   onOpenShutdown: () => void;
+  onOpenShortcutHelp?: () => void;
   archivedCount: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenArchive, onOpenShutdown, archivedCount }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenArchive,
+  onOpenShutdown,
+  onOpenShortcutHelp,
+  archivedCount,
+}) => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
   useEffect(() => {
@@ -73,6 +79,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenArchive, onOpenShutdown, a
 
       {/* アクションボタン */}
       <div className="flex items-center gap-2">
+        {/* ショートカット一覧 */}
+        {onOpenShortcutHelp && (
+          <button
+            onClick={onOpenShortcutHelp}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-colors cursor-pointer"
+            title="キーボードショートカット一覧 (?)"
+          >
+            <Keyboard className="w-4 h-4 text-slate-500" />
+            <span className="hidden sm:inline text-xs">ショートカット</span>
+            <kbd className="px-1 py-0.2 text-[10px] font-mono font-semibold bg-white text-slate-600 border border-slate-300 rounded">
+              ?
+            </kbd>
+          </button>
+        )}
+
         {/* アーカイブ一覧 */}
         <button
           onClick={onOpenArchive}

@@ -28,7 +28,13 @@
   - Fractional Indexing 自動リバランス
   - 日次自動バックアップ（最新7世代保持）
 
-### 3. [Markdown記法・ショートカットキー対応表 (markdown_shortcuts.md)](markdown_shortcuts.md)
-- **テキスト装飾・リンク・コードのショートカットキー対応表**: 太字、斜体、取り消し線、インラインコード、コードブロック、リンク挿入
+### 3. [キーボードショートカット操作ガイド (keyboard_shortcuts.md)](keyboard_shortcuts.md)
+- **カード作成・保存フロー**: <kbd>c</kbd> / <kbd>n</kbd> / <kbd>1〜9</kbd> での作成開始、<kbd>Enter</kbd>（連続作成）、<kbd>Ctrl+Enter</kbd>（保存終了）、<kbd>Shift+Enter</kbd>（保存＋詳細展開）、IME変換保護
+- **ボードナビゲーション**: 矢印キー（<kbd>←</kbd><kbd>→</kbd> カラム切替、<kbd>↑</kbd><kbd>↓</kbd> カード選択・自動スクロール）、<kbd>Enter</kbd>/<kbd>Space</kbd> 詳細展開
+- **詳細モーダル内操作**: <kbd>Ctrl+Shift+P</kbd>（編集/プレビュー切替）、<kbd>Ctrl+Enter</kbd>（保存）、<kbd>e</kbd> / <kbd>d</kbd> / <kbd>t</kbd> / <kbd>c</kbd> / <kbd>a</kbd> クイック操作、段階的 <kbd>Escape</kbd> 処理
+- **ヘルプ表示**: <kbd>?</kbd> キーによるショートカット一覧モーダル
+
+### 4. [Markdown記法・ショートカットキー対応表 (markdown_shortcuts.md)](markdown_shortcuts.md)
+- **テキスト装飾・リンク・コードのショートカットキー対応表**: 太字、斜体、取り消し線、インラインコード、コードブロック、リンク挿入、プレビュー切替（`Ctrl+Shift+P`）、保存（`Ctrl+Enter`）
 - **Qiita互換 ノート記法（`:::note info` / `warn` / `alert`）**: 3種類のコールアウト表示と専用ショートカットキー（`Ctrl+Shift+1`〜`3`）
 - **フォーマットツールバー & ヘルプポップオーバー**: ワンクリック装飾挿入とショートカット一覧表示

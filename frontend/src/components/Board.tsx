@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Plus, X } from 'lucide-react';
 import { Card, ListModel } from '../types';
@@ -7,18 +7,20 @@ import { ListColumn } from './ListColumn';
 interface BoardProps {
   lists: ListModel[];
   cards: Card[];
+  isModalOpen?: boolean;
   onMoveCard: (cardId: string, targetListId: string, newPosition: number) => void;
   onMoveList: (listId: string, newPosition: number) => void;
   onCreateList: (title: string) => void;
   onUpdateListTitle: (listId: string, newTitle: string) => void;
   onDeleteList: (list: ListModel) => void;
-  onCreateCard: (listId: string, title: string) => void;
+  onCreateCard: (listId: string, title: string, openModal?: boolean) => void | Promise<void>;
   onSelectCard: (card: Card) => void;
 }
 
 export const Board: React.FC<BoardProps> = ({
   lists,
   cards,
+  isModalOpen = false,
   onMoveCard,
   onMoveList,
   onCreateList,
@@ -29,6 +31,139 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
+
+  // キーボードナビゲーション & カード作成状態
+  const [activeListIndex, setActiveListIndex] = useState<number>(0);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [addingCardListId, setAddingCardListId] = useState<string | null>(null);
+
+  // リスト数が減少した際に activeListIndex を範囲内に収める
+  useEffect(() => {
+    if (lists.length > 0 && activeListIndex >= lists.length) {
+      setActiveListIndex(lists.length - 1);
+    }
+  }, [lists.length, activeListIndex]);
+
+  // ボード全体のキーボードショートカット
+  useEffect(() => {
+    if (isModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.defaultPrevented) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // 入力要素にフォーカスがある場合はグローバルショートカットを無効化
+      const target = (e.composedPath?.()[0] || e.target) as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable ||
+          target.matches?.(':read-write, select, input, textarea'))
+      ) {
+        return;
+      }
+
+      if (lists.length === 0) return;
+
+      const safeListIndex = Math.min(Math.max(0, activeListIndex), lists.length - 1);
+      const currentList = lists[safeListIndex];
+      const getCardsForList = (listId: string) =>
+        cards
+          .filter((c) => c.list_id === listId && !c.is_archived)
+          .sort((a, b) => a.position - b.position);
+
+      const key = e.key.toLowerCase();
+
+      // 1. カード追加開始 (c または n)
+      if ((key === 'c' || key === 'n') && !e.shiftKey) {
+        e.preventDefault();
+        setIsAddingList(false);
+        setAddingCardListId(currentList.id);
+        return;
+      }
+
+      // 2. 数字キー 1〜9 で対応するカラムのカード追加を直接開始
+      if (!e.shiftKey && /^[1-9]$/.test(e.key)) {
+        const targetIdx = parseInt(e.key, 10) - 1;
+        if (targetIdx < lists.length) {
+          e.preventDefault();
+          setIsAddingList(false);
+          setActiveListIndex(targetIdx);
+          setAddingCardListId(lists[targetIdx].id);
+        }
+        return;
+      }
+
+      // 3. 左右矢印キー: カラム間の移動
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const nextListIdx =
+          e.key === 'ArrowLeft' ? safeListIndex - 1 : safeListIndex + 1;
+        if (nextListIdx >= 0 && nextListIdx < lists.length) {
+          e.preventDefault();
+          setAddingCardListId(null);
+          setActiveListIndex(nextListIdx);
+          const nextListCards = getCardsForList(lists[nextListIdx].id);
+          if (nextListCards.length > 0) {
+            const currentCards = getCardsForList(currentList.id);
+            const currentCardIdx = currentCards.findIndex((c) => c.id === selectedCardId);
+            const targetCardIdx =
+              currentCardIdx >= 0
+                ? Math.min(currentCardIdx, nextListCards.length - 1)
+                : 0;
+            setSelectedCardId(nextListCards[targetCardIdx].id);
+          } else {
+            setSelectedCardId(null);
+          }
+        }
+        return;
+      }
+
+      // 4. 上下矢印キー: カラム内のカード選択移動
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const currentCards = getCardsForList(currentList.id);
+        if (currentCards.length === 0) return;
+
+        const currentIdx = currentCards.findIndex((c) => c.id === selectedCardId);
+        if (currentIdx === -1) {
+          e.preventDefault();
+          const initialIdx = e.key === 'ArrowDown' ? 0 : currentCards.length - 1;
+          setSelectedCardId(currentCards[initialIdx].id);
+          return;
+        }
+
+        const nextIdx = e.key === 'ArrowDown' ? currentIdx + 1 : currentIdx - 1;
+        if (nextIdx >= 0 && nextIdx < currentCards.length) {
+          e.preventDefault();
+          setSelectedCardId(currentCards[nextIdx].id);
+        }
+        // 端に到達している場合は preventDefault() せずネイティブスクロールを許可
+        return;
+      }
+
+      // 5. Enter / Space: 選択中のカードの詳細モーダルを開く
+      if ((e.key === 'Enter' || e.key === ' ') && selectedCardId) {
+        // ボタン等にフォーカスがある場合は標準動作を優先
+        if (target && target.tagName === 'BUTTON') return;
+        const targetCard = cards.find((c) => c.id === selectedCardId && !c.is_archived);
+        if (targetCard) {
+          e.preventDefault();
+          onSelectCard(targetCard);
+        }
+        return;
+      }
+
+      // 6. Escape: カード選択解除
+      if (e.key === 'Escape' && selectedCardId) {
+        setSelectedCardId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, lists, cards, activeListIndex, selectedCardId, onSelectCard]);
 
   const handleAddListSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,10 +242,26 @@ export const Board: React.FC<BoardProps> = ({
                   list={list}
                   index={index}
                   cards={listCards}
+                  isActiveList={activeListIndex === index}
+                  isAddingCard={addingCardListId === list.id}
+                  selectedCardId={selectedCardId}
+                  onSetAddingCard={(adding) => {
+                    if (adding) {
+                      setActiveListIndex(index);
+                      setAddingCardListId(list.id);
+                    } else if (addingCardListId === list.id) {
+                      setAddingCardListId(null);
+                    }
+                  }}
+                  onActivateList={() => setActiveListIndex(index)}
                   onUpdateListTitle={onUpdateListTitle}
                   onDeleteList={onDeleteList}
                   onAddCard={onCreateCard}
-                  onSelectCard={onSelectCard}
+                  onSelectCard={(card) => {
+                    setActiveListIndex(index);
+                    setSelectedCardId(card.id);
+                    onSelectCard(card);
+                  }}
                 />
               );
             })}
@@ -131,6 +282,7 @@ export const Board: React.FC<BoardProps> = ({
                     autoFocus
                     className="w-full px-3 py-2 text-sm bg-white rounded-xl border border-indigo-500 outline-hidden shadow-xs"
                     onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                       if (e.key === 'Escape') setIsAddingList(false);
                     }}
                   />

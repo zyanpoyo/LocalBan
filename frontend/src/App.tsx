@@ -15,6 +15,7 @@ import { Board } from './components/Board';
 import { CardModal } from './components/CardModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { ConfirmModal } from './components/ConfirmModal';
+import { ShortcutHelpModal } from './components/ShortcutHelpModal';
 import { Loader2, PowerOff } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -26,6 +27,7 @@ export const App: React.FC = () => {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isShutdownOpen, setIsShutdownOpen] = useState(false);
+  const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
 
   // リスト削除確認モーダル
@@ -58,6 +60,34 @@ export const App: React.FC = () => {
     };
   }, [loadData]);
 
+  // グローバルショートカット: ? キーでショートカットヘルプモーダルを開閉
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const target = (e.composedPath?.()[0] || e.target) as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable ||
+          target.matches?.(':read-write, select, input, textarea'))
+      ) {
+        return;
+      }
+
+      if (e.key === '?') {
+        e.preventDefault();
+        setIsShortcutHelpOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // リスト操作
   const handleCreateList = async (title: string) => {
     await createList(title);
@@ -87,10 +117,13 @@ export const App: React.FC = () => {
     await loadData();
   };
 
-  // カード操作
-  const handleCreateCard = async (listId: string, title: string) => {
-    await createCard(listId, title);
+  // カード操作 (openModal=true の場合は作成直後に詳細モーダルを開く)
+  const handleCreateCard = async (listId: string, title: string, openModal?: boolean) => {
+    const created = await createCard(listId, title);
     await loadData();
+    if (openModal && created) {
+      setSelectedCard(created);
+    }
   };
 
   const handleMoveCard = async (cardId: string, targetListId: string, position: number) => {
@@ -188,12 +221,16 @@ export const App: React.FC = () => {
     );
   }
 
+  const isAnyModalOpen =
+    !!selectedCard || isArchiveOpen || isShutdownOpen || isShortcutHelpOpen || !!deletingList;
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 selection:bg-indigo-500 selection:text-white">
       {/* グローバルヘッダー */}
       <Header
         onOpenArchive={() => setIsArchiveOpen(true)}
         onOpenShutdown={() => setIsShutdownOpen(true)}
+        onOpenShortcutHelp={() => setIsShortcutHelpOpen(true)}
         archivedCount={0}
       />
 
@@ -202,6 +239,7 @@ export const App: React.FC = () => {
         <Board
           lists={boardState.lists}
           cards={boardState.cards}
+          isModalOpen={isAnyModalOpen}
           onMoveCard={handleMoveCard}
           onMoveList={handleMoveList}
           onCreateList={handleCreateList}
@@ -234,6 +272,12 @@ export const App: React.FC = () => {
           onCardPermanentlyDeleted={() => {}}
         />
       )}
+
+      {/* ショートカット一覧ヘルプモーダル */}
+      <ShortcutHelpModal
+        isOpen={isShortcutHelpOpen}
+        onClose={() => setIsShortcutHelpOpen(false)}
+      />
 
       {/* リスト削除確認モーダル 【対応必須 4】 */}
       <ConfirmModal

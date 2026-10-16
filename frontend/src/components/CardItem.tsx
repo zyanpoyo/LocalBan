@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Clock, CheckSquare, Paperclip, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card } from '../types';
@@ -7,6 +7,7 @@ import { getAttachmentDownloadUrl } from '../api';
 interface CardItemProps {
   card: Card;
   index: number;
+  isSelected?: boolean;
   onClick: () => void;
 }
 
@@ -19,7 +20,15 @@ const LABEL_COLOR_MAP: Record<string, string> = {
   purple: 'bg-purple-500 text-white',
 };
 
-export const CardItem: React.FC<CardItemProps> = ({ card, index, onClick }) => {
+export const CardItem: React.FC<CardItemProps> = ({ card, index, isSelected = false, onClick }) => {
+  const itemRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isSelected && itemRef.current) {
+      itemRef.current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [isSelected]);
+
   // 期限判定 【項目10】
   const getDueBadge = () => {
     if (!card.due_date) return null;
@@ -75,12 +84,19 @@ export const CardItem: React.FC<CardItemProps> = ({ card, index, onClick }) => {
     <Draggable draggableId={card.id} index={index}>
       {(provided, snapshot) => (
         <div
-          ref={provided.innerRef}
+          ref={(node) => {
+            provided.innerRef(node);
+            itemRef.current = node;
+          }}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
-          className={`group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-150 cursor-pointer overflow-hidden ${
-            snapshot.isDragging ? 'shadow-lg rotate-1 scale-[1.02] border-indigo-500 z-50 ring-2 ring-indigo-400/20' : ''
+          className={`group bg-white rounded-xl border shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-150 cursor-pointer overflow-hidden ${
+            snapshot.isDragging
+              ? 'shadow-lg rotate-1 scale-[1.02] border-indigo-500 z-50 ring-2 ring-indigo-400/20'
+              : isSelected
+                ? 'border-indigo-500 ring-2 ring-indigo-500/30 shadow-sm'
+                : 'border-slate-200/90'
           }`}
         >
           {/* カバー画像 */}
