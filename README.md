@@ -39,11 +39,16 @@ Trello に着想を得た、軽量でオフラインファーストな Windows 1
 
 ---
 
-## 🚀 起動方法
+## 🚀 起動・インストール方法
 
-1. `dist/LocalBan.exe` をダブルクリックして実行します。
-2. 独立したデスクトップウィンドウ（LocalBan）が立ち上がります。
-3. Windowsのタスクトレイ（通知領域）に「LocalBan」アイコンが常駐します。
+お好みに応じて **ポータブル版** または **インストール版** のいずれかをご利用いただけます。
+
+- **ポータブル版（インストール不要）**:
+  1. [`dist/LocalBan.exe`](file:///c:/Users/ymasa/MyProject/LocalBan/dist/LocalBan.exe) をダブルクリックして実行します。
+  2. 独立したデスクトップウィンドウ（LocalBan）が即座に立ち上がります。
+- **インストール版（スタートメニュー・ショートカット登録）**:
+  1. [`dist/LocalBan-v2.0.0-setup.exe`](file:///c:/Users/ymasa/MyProject/LocalBan/dist/LocalBan-v2.0.0-setup.exe) を実行してセットアップします。
+  2. デスクトップおよびスタートメニューにショートカットが登録され、Windows の「アプリと機能」からアンインストールも可能になります。
 
 > [!NOTE]
 > 初回起動時に Windows SmartScreen の「WindowsによってPCが保護されました」と表示された場合は、「詳細情報」をクリックし「実行」を選択してください（個人開発の未署名バイナリであるためです）。

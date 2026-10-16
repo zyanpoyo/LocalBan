@@ -40,6 +40,16 @@ const distExe = path.join(distDir, 'LocalBan.exe');
 fs.copyFileSync(exeSrc, distExe);
 console.log(`Copied LocalBan.exe to ${distExe}`);
 
+// インストーラー (NSIS setup.exe) を dist/ にコピー
+const nsisDir = path.join(rootDir, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
+const setupFiles = fs.existsSync(nsisDir) ? fs.readdirSync(nsisDir).filter((f) => f.endsWith('-setup.exe')) : [];
+if (setupFiles.length > 0) {
+  const setupSrc = path.join(nsisDir, setupFiles[0]);
+  const distSetupExe = path.join(distDir, `LocalBan-v${version}-setup.exe`);
+  fs.copyFileSync(setupSrc, distSetupExe);
+  console.log(`Copied Installer to ${distSetupExe}`);
+}
+
 // 配布 ZIP の生成 (PowerShell Compress-Archive)
 console.log(`\n=== Step 3: Packaging Distribution ZIP: ${zipName} ===`);
 const tempPackDir = path.join(distDir, 'pack_temp', 'LocalBan');
