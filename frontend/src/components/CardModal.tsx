@@ -158,17 +158,18 @@ export const CardModal: React.FC<CardModalProps> = ({
   // ファイルアップロード (ボタン & ドラッグ&ドロップ)
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    let latestCard = currentCard;
     for (let i = 0; i < files.length; i++) {
       try {
         const att = await uploadAttachment(currentCard.id, files[i]);
         const isImage = att.mime_type?.startsWith('image/') && att.mime_type !== 'image/svg+xml';
-        const updated = {
-          ...currentCard,
-          attachments: [...currentCard.attachments, att],
-          cover_attachment_id: (!currentCard.cover_attachment_id && isImage) ? att.id : currentCard.cover_attachment_id,
+        latestCard = {
+          ...latestCard,
+          attachments: [...latestCard.attachments, att],
+          cover_attachment_id: (!latestCard.cover_attachment_id && isImage) ? att.id : latestCard.cover_attachment_id,
         };
-        setCurrentCard(updated);
-        onCardUpdated(updated);
+        setCurrentCard(latestCard);
+        onCardUpdated(latestCard);
       } catch (err: any) {
         alert(err.message || 'ファイルのアップロードに失敗しました');
       }

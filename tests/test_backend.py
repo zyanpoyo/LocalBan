@@ -276,3 +276,66 @@ def test_system_status(client, auth_headers):
     assert data["app"] == "LocalBan"
     assert data["version"] == "1.0.1"
     assert data["version"] == APP_VERSION
+
+# 13. 日本語ファイル名を含む添付ファイルのインライン表示およびダウンロード検証
+def test_attachment_download_japanese_filename_inline_and_download(client, auth_headers):
+    # テストカード作成
+    res_list = client.post("/api/lists", json={"title": "画像テストリスト"}, headers=auth_headers)
+    list_id = res_list.json()["id"]
+    res_card = client.post("/api/cards", json={"list_id": list_id, "title": "画像テストカード"}, headers=auth_headers)
+    card_id = res_card.json()["id"]
+
+    # 日本語ファイル名で画像をアップロード
+    jp_filename = "スクリーンショット 2026-10-16.png"
+    fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+    files = {"file": (jp_filename, fake_png, "image/png")}
+    res_upload = client.post(f"/api/attachments/card/{card_id}", files=files, headers=auth_headers)
+    assert res_upload.status_code == 201
+    att_id = res_upload.json()["id"]
+    assert res_upload.json()["filename"] == jp_filename
+
+    # 1. インライン取得 (プレビュー表示: inline=true)
+    res_inline = client.get(f"/api/attachments/{att_id}/download?inline=true", headers=auth_headers)
+    assert res_inline.status_code == 200
+    assert res_inline.content == fake_png
+    assert res_inline.headers["content-type"] == "image/png"
+    disposition = res_inline.headers.get("content-disposition", "")
+    assert "inline" in disposition
+    assert "filename*=utf-8''" in disposition
+
+    # 2. クエリパラメータトークンによるインライン取得 (img src URLでの利用パターン)
+    res_token_query = client.get(f"/api/attachments/{att_id}/download?inline=true&token={SESSION_TOKEN}")
+    assert res_token_query.status_code == 200
+    assert res_token_query.content == fake_png
+
+    # 3. 通常ダウンロード (inline=false)
+    res_dl = client.get(f"/api/attachments/{att_id}/download?inline=false", headers=auth_headers)
+    assert res_dl.status_code == 200
+    assert res_dl.content == fake_png
+    disposition_dl = res_dl.headers.get("content-disposition", "")
+    assert "attachment" in disposition_dl
+    assert "filename*=utf-8''" in disposition_dl
+
+# 14. インライン表示許可 MIME タイプの安全検証 (BMP, AVIF, SVG強制DL)
+def test_attachment_safe_inline_mime_types(client, auth_headers):
+    res_list = client.post("/api/lists", json={"title": "MIMEテストリスト"}, headers=auth_headers)
+    list_id = res_list.json()["id"]
+    res_card = client.post("/api/cards", json={"list_id": list_id, "title": "MIMEカード"}, headers=auth_headers)
+    card_id = res_card.json()["id"]
+
+    # BMP 画像のインライン取得許可
+    res_bmp = client.post(f"/api/attachments/card/{card_id}", files={"file": ("test.bmp", b"BMfake", "image/bmp")}, headers=auth_headers)
+    bmp_id = res_bmp.json()["id"]
+    res_bmp_inline = client.get(f"/api/attachments/{bmp_id}/download?inline=true", headers=auth_headers)
+    assert res_bmp_inline.status_code == 200
+    assert "inline" in res_bmp_inline.headers.get("content-disposition", "")
+    assert res_bmp_inline.headers["content-type"] == "image/bmp"
+
+    # SVG ファイルはスクリプト実行防止のためインライン指定でも強制ダウンロードになること
+    res_svg = client.post(f"/api/attachments/card/{card_id}", files={"file": ("vector.svg", b"<svg></svg>", "image/svg+xml")}, headers=auth_headers)
+    svg_id = res_svg.json()["id"]
+    res_svg_inline = client.get(f"/api/attachments/{svg_id}/download?inline=true", headers=auth_headers)
+    assert res_svg_inline.status_code == 200
+    assert "attachment" in res_svg_inline.headers.get("content-disposition", "")
+    assert res_svg_inline.headers["content-type"] == "application/octet-stream"
+

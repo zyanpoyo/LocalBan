@@ -15,6 +15,10 @@ SAFE_INLINE_MIME_TYPES = {
     "image/png",
     "image/webp",
     "image/gif",
+    "image/bmp",
+    "image/avif",
+    "image/apng",
+    "image/x-icon",
     "application/pdf",
     "text/plain",
 }
@@ -83,7 +87,7 @@ async def upload_attachment(card_id: str, file: UploadFile = File(...)):
 
 @router.get("/{attachment_id}/download")
 def download_attachment(attachment_id: str, inline: bool = False):
-    """【項目2】パストラバーサル防止、SVG/HTML強制DL、nosniff配信"""
+    """【項目2】パストラバーサル防止、SVG/HTML強制DL、nosniff配信、RFC 5987/6266準拠ヘッダー"""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM attachments WHERE id = ?;", (attachment_id,))
@@ -103,17 +107,18 @@ def download_attachment(attachment_id: str, inline: bool = False):
     can_inline = inline and (mime_type.lower() in SAFE_INLINE_MIME_TYPES)
     disposition_type = "inline" if can_inline else "attachment"
     
-    # RFC 5987 / URLエンコードファイル名対応ヘッダー
-    from urllib.parse import quote
-    encoded_name = quote(orig_filename)
+    # Starlette の FileResponse は filename と content_disposition_type を渡すことで
+    # 非ASCIIファイル名を自動的に RFC 5987 (filename*=utf-8''...) にエンコードし、
+    # latin-1 UnicodeEncodeError を防止する
     headers = {
-        "Content-Disposition": f'{disposition_type}; filename="{orig_filename}"; filename*=UTF-8\'\'{encoded_name}',
         "X-Content-Type-Options": "nosniff"
     }
     
     return FileResponse(
         path=str(target_path),
         media_type=mime_type if can_inline else "application/octet-stream",
+        filename=orig_filename,
+        content_disposition_type=disposition_type,
         headers=headers
     )
 
