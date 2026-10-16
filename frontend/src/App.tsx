@@ -182,9 +182,9 @@ export const App: React.FC = () => {
         <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-rose-500 shadow-xl border border-slate-700">
           <PowerOff className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-100">LocalBan は終了しました</h1>
+        <h1 className="text-2xl font-bold text-slate-100">LocalBan を終了しています</h1>
         <p className="text-sm text-slate-400 max-w-sm">
-          バックグラウンドサーバーは安全に停止しました。このブラウザタブは閉じていただいて構いません。
+          安全に停止処理を実行しています...
         </p>
       </div>
     );

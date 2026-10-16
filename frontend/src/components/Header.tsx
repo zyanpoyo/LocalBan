@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
           LocalBan
         </h1>
         <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold border border-indigo-100/80">
-          v1.0.1
+          v2.0.0
         </span>
         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">
           オフライン

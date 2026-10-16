@@ -21,6 +21,9 @@ dist/
 *.manifest
 *.spec
 
+# Rust / Tauri
+src-tauri/target/
+
 # Toreyo Local Data / Logs (in dev environment)
 *.db
 *.db-wal
