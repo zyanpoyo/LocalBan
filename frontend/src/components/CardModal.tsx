@@ -19,6 +19,16 @@ import {
   ExternalLink,
   Download,
   CheckCircle,
+  Bold,
+  Italic,
+  Strikethrough,
+  Code,
+  SquareCode,
+  Link as LinkIcon,
+  Info,
+  AlertTriangle,
+  AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { Card, Label, ListModel, Checklist, Attachment } from '../types';
 import {
@@ -82,6 +92,118 @@ const LABEL_COLOR_MAP: Record<string, string> = {
   purple: 'bg-purple-500 text-white',
 };
 
+type MarkdownFormatType =
+  | 'bold'
+  | 'italic'
+  | 'strikethrough'
+  | 'code'
+  | 'codeblock'
+  | 'link'
+  | 'note-info'
+  | 'note-warn'
+  | 'note-alert';
+
+type NoteVariant = 'info' | 'warn' | 'alert';
+
+type MarkdownSegment =
+  | { type: 'markdown'; content: string }
+  | { type: 'note'; variant: NoteVariant; content: string };
+
+const MARKDOWN_SHORTCUT_ITEMS: {
+  type: MarkdownFormatType;
+  label: string;
+  shortcut: string;
+  syntax: string;
+}[] = [
+  { type: 'bold', label: '太字', shortcut: 'Ctrl+B', syntax: '**太字**' },
+  { type: 'italic', label: '斜体', shortcut: 'Ctrl+I', syntax: '*斜体*' },
+  { type: 'strikethrough', label: '取り消し線', shortcut: 'Ctrl+Shift+X', syntax: '~~取消~~' },
+  { type: 'code', label: 'インラインコード', shortcut: 'Ctrl+E', syntax: '`コード`' },
+  { type: 'codeblock', label: 'コードブロック', shortcut: 'Ctrl+Shift+K', syntax: '```...```' },
+  { type: 'link', label: 'リンク挿入', shortcut: 'Ctrl+K', syntax: '[text](url)' },
+  { type: 'note-info', label: 'Qiitaノート (補足)', shortcut: 'Ctrl+Shift+1', syntax: ':::note info' },
+  { type: 'note-warn', label: 'Qiitaノート (警告)', shortcut: 'Ctrl+Shift+2', syntax: ':::note warn' },
+  { type: 'note-alert', label: 'Qiitaノート (強い警告)', shortcut: 'Ctrl+Shift+3', syntax: ':::note alert' },
+];
+
+// Qiita互換 :::note [info|warn|alert] ブロックを抽出するパーサー（コードブロック内は除外）
+const parseMarkdownSegments = (markdown: string): MarkdownSegment[] => {
+  const lines = markdown.split(/\r?\n/);
+  const segments: MarkdownSegment[] = [];
+  let mdBuffer: string[] = [];
+  let inCodeFence = false;
+  let fenceMarker = '';
+
+  let inNote = false;
+  let noteVariant: NoteVariant = 'info';
+  let noteOpenLine = '';
+  let noteBuffer: string[] = [];
+
+  const flushMd = () => {
+    if (mdBuffer.length > 0) {
+      const content = mdBuffer.join('\n');
+      if (content.trim()) {
+        segments.push({ type: 'markdown', content });
+      }
+      mdBuffer = [];
+    }
+  };
+
+  for (const line of lines) {
+    // コードフェンスの開始・終了判定
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0];
+      if (!inCodeFence) {
+        inCodeFence = true;
+        fenceMarker = marker;
+      } else if (marker === fenceMarker) {
+        inCodeFence = false;
+        fenceMarker = '';
+      }
+    }
+
+    if (!inCodeFence) {
+      if (!inNote) {
+        const noteStartMatch = line.match(/^:::note(?:\s+(info|warn|alert))?\s*$/);
+        if (noteStartMatch) {
+          flushMd();
+          inNote = true;
+          noteVariant = (noteStartMatch[1] as NoteVariant) || 'info';
+          noteOpenLine = line;
+          noteBuffer = [];
+          continue;
+        }
+      } else {
+        if (/^:::\s*$/.test(line)) {
+          segments.push({
+            type: 'note',
+            variant: noteVariant,
+            content: noteBuffer.join('\n'),
+          });
+          inNote = false;
+          noteBuffer = [];
+          continue;
+        }
+      }
+    }
+
+    if (inNote) {
+      noteBuffer.push(line);
+    } else {
+      mdBuffer.push(line);
+    }
+  }
+
+  // 閉じられていない :::note が末尾に残った場合は通常Markdownとして扱う
+  if (inNote) {
+    mdBuffer.push(noteOpenLine, ...noteBuffer);
+  }
+  flushMd();
+
+  return segments;
+};
+
 export const CardModal: React.FC<CardModalProps> = ({
   card,
   lists,
@@ -99,6 +221,7 @@ export const CardModal: React.FC<CardModalProps> = ({
   const [description, setDescription] = useState(card.description || '');
   const [descMode, setDescMode] = useState<'edit' | 'preview'>('edit');
   const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
 
   // 新規チェックリスト
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
@@ -118,6 +241,7 @@ export const CardModal: React.FC<CardModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setCurrentCard(card);
@@ -194,6 +318,163 @@ export const CardModal: React.FC<CardModalProps> = ({
     setCurrentCard(updated);
     onCardUpdated(updated);
     setIsEditingDesc(false);
+  };
+
+  // Markdown 装飾・テンプレート挿入ヘルパー
+  const applyMarkdownFormat = (type: MarkdownFormatType) => {
+    const textarea = descTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = description.slice(start, end);
+    setIsEditingDesc(true);
+
+    const updateWithSelection = (nextText: string, selStart: number, selEnd: number) => {
+      setDescription(nextText);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(selStart, selEnd);
+      });
+    };
+
+    // インライン装飾の囲み・トグル解除
+    const applyInlineWrapper = (wrapper: string, placeholder: string) => {
+      const len = wrapper.length;
+      const before = description.slice(Math.max(0, start - len), start);
+      const after = description.slice(end, end + len);
+
+      // 選択範囲の直前・直後が既に同じ記号で囲まれている場合は解除
+      const isValidOuterToggle =
+        before === wrapper &&
+        after === wrapper &&
+        !(wrapper === '*' && (description.slice(Math.max(0, start - 2), start) === '**' || description.slice(end, end + 2) === '**'));
+
+      if (isValidOuterToggle) {
+        const nextText =
+          description.slice(0, start - len) + selected + description.slice(end + len);
+        updateWithSelection(nextText, start - len, end - len);
+        return;
+      }
+
+      // 選択範囲自体が記号を含んで選択されている場合も解除
+      const isValidInnerToggle =
+        selected.length >= len * 2 &&
+        selected.startsWith(wrapper) &&
+        selected.endsWith(wrapper) &&
+        !(wrapper === '*' && selected.startsWith('**') && !selected.startsWith('***'));
+
+      if (isValidInnerToggle) {
+        const unwrapped = selected.slice(len, selected.length - len);
+        const nextText = description.slice(0, start) + unwrapped + description.slice(end);
+        updateWithSelection(nextText, start, start + unwrapped.length);
+        return;
+      }
+
+      const inner = selected || placeholder;
+      const inserted = `${wrapper}${inner}${wrapper}`;
+      const nextText = description.slice(0, start) + inserted + description.slice(end);
+      updateWithSelection(nextText, start + len, start + len + inner.length);
+    };
+
+    // ブロック装飾（コードブロック / Qiita :::note）の挿入
+    const applyBlockWrapper = (openFence: string, closeFence: string, placeholder: string) => {
+      const prefix = start > 0 && description[start - 1] !== '\n' ? '\n' : '';
+      const suffix = end < description.length && description[end] !== '\n' ? '\n' : '';
+      const inner = selected || placeholder;
+      const inserted = `${prefix}${openFence}\n${inner}\n${closeFence}${suffix}`;
+      const nextText = description.slice(0, start) + inserted + description.slice(end);
+      const innerStart = start + prefix.length + openFence.length + 1;
+      updateWithSelection(nextText, innerStart, innerStart + inner.length);
+    };
+
+    switch (type) {
+      case 'bold':
+        applyInlineWrapper('**', '太字');
+        break;
+      case 'italic':
+        applyInlineWrapper('*', '斜体');
+        break;
+      case 'strikethrough':
+        applyInlineWrapper('~~', '取り消し線');
+        break;
+      case 'code':
+        applyInlineWrapper('`', 'コード');
+        break;
+      case 'codeblock':
+        applyBlockWrapper('```', '```', 'コード');
+        break;
+      case 'link': {
+        const isUrl = /^https?:\/\/\S+$/i.test(selected.trim());
+        if (isUrl) {
+          const linkText = 'リンクテキスト';
+          const url = selected.trim();
+          const inserted = `[${linkText}](${url})`;
+          const nextText = description.slice(0, start) + inserted + description.slice(end);
+          updateWithSelection(nextText, start + 1, start + 1 + linkText.length);
+        } else {
+          const linkText = selected || 'リンクテキスト';
+          const urlPlaceholder = 'url';
+          const inserted = `[${linkText}](${urlPlaceholder})`;
+          const nextText = description.slice(0, start) + inserted + description.slice(end);
+          const urlStart = start + linkText.length + 3;
+          updateWithSelection(nextText, urlStart, urlStart + urlPlaceholder.length);
+        }
+        break;
+      }
+      case 'note-info':
+        applyBlockWrapper(':::note info', ':::', 'インフォメーション');
+        break;
+      case 'note-warn':
+        applyBlockWrapper(':::note warn', ':::', '警告\n○○に注意してください。');
+        break;
+      case 'note-alert':
+        applyBlockWrapper(':::note alert', ':::', 'より強い警告\n○○しないでください。');
+        break;
+    }
+  };
+
+  // 説明欄のショートカットキー入力ハンドラ (IME変換中は無視)
+  const handleDescKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
+    const isMod = e.ctrlKey || e.metaKey;
+    if (!isMod || e.altKey) return;
+
+    const key = e.key.toLowerCase();
+
+    if (!e.shiftKey) {
+      if (key === 'b') {
+        e.preventDefault();
+        applyMarkdownFormat('bold');
+      } else if (key === 'i') {
+        e.preventDefault();
+        applyMarkdownFormat('italic');
+      } else if (key === 'e') {
+        e.preventDefault();
+        applyMarkdownFormat('code');
+      } else if (key === 'k') {
+        e.preventDefault();
+        applyMarkdownFormat('link');
+      }
+    } else {
+      if (key === 'x') {
+        e.preventDefault();
+        applyMarkdownFormat('strikethrough');
+      } else if (key === 'k' || key === 'c') {
+        e.preventDefault();
+        applyMarkdownFormat('codeblock');
+      } else if (e.code === 'Digit1' || key === '1' || key === '!') {
+        e.preventDefault();
+        applyMarkdownFormat('note-info');
+      } else if (e.code === 'Digit2' || key === '2' || key === '"' || key === '@') {
+        e.preventDefault();
+        applyMarkdownFormat('note-warn');
+      } else if (e.code === 'Digit3' || key === '3' || key === '#') {
+        e.preventDefault();
+        applyMarkdownFormat('note-alert');
+      }
+    }
   };
 
   // ラベル着脱
@@ -448,7 +729,10 @@ export const CardModal: React.FC<CardModalProps> = ({
                     編集
                   </button>
                   <button
-                    onClick={() => setDescMode('preview')}
+                    onClick={() => {
+                      setDescMode('preview');
+                      setShowShortcutHelp(false);
+                    }}
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                       descMode === 'preview' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'
                     }`}
@@ -461,12 +745,148 @@ export const CardModal: React.FC<CardModalProps> = ({
 
               {descMode === 'edit' ? (
                 <div className="space-y-2">
+                  {/* Markdown フォーマットツールバー */}
+                  <div className="relative flex flex-wrap items-center justify-between gap-1 px-2 py-1.5 bg-slate-100/80 border border-slate-200 rounded-xl">
+                    <div className="flex flex-wrap items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('bold')}
+                        title="太字 (Ctrl+B)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <Bold className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('italic')}
+                        title="斜体 (Ctrl+I)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <Italic className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('strikethrough')}
+                        title="取り消し線 (Ctrl+Shift+X)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <Strikethrough className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('code')}
+                        title="インラインコード (Ctrl+E)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <Code className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('codeblock')}
+                        title="コードブロック (Ctrl+Shift+K)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <SquareCode className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('link')}
+                        title="リンク挿入 (Ctrl+K)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <LinkIcon className="w-3.5 h-3.5" />
+                      </button>
+
+                      <span className="w-px h-4 bg-slate-300 mx-1" />
+
+                      {/* Qiita 互換 :::note ボタン */}
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('note-info')}
+                        title="Qiitaノート: 補足説明 :::note info (Ctrl+Shift+1)"
+                        className="px-1.5 py-1 rounded-lg text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium"
+                      >
+                        <Info className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>info</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('note-warn')}
+                        title="Qiitaノート: 警告 :::note warn (Ctrl+Shift+2)"
+                        className="px-1.5 py-1 rounded-lg text-amber-700 hover:bg-amber-50 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        <span>warn</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('note-alert')}
+                        title="Qiitaノート: 強い警告 :::note alert (Ctrl+Shift+3)"
+                        className="px-1.5 py-1 rounded-lg text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>alert</span>
+                      </button>
+                    </div>
+
+                    {/* ショートカット一覧ヘルプボタン */}
+                    <button
+                      type="button"
+                      onClick={() => setShowShortcutHelp((prev) => !prev)}
+                      title="Markdownショートカットキー一覧"
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium ${
+                        showShortcutHelp
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'text-slate-500 hover:text-slate-800 hover:bg-white'
+                      }`}
+                    >
+                      <HelpCircle className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">ショートカット</span>
+                    </button>
+
+                    {/* ショートカット一覧ポップオーバー */}
+                    {showShortcutHelp && (
+                      <div className="absolute right-0 top-full mt-1.5 z-30 w-80 sm:w-96 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-xs space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                          <span className="font-bold text-slate-800">Markdown ショートカットキー一覧</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowShortcutHelp(false)}
+                            className="p-0.5 text-slate-400 hover:text-slate-700 rounded-md cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                          {MARKDOWN_SHORTCUT_ITEMS.map((item) => (
+                            <div
+                              key={item.type}
+                              className="py-1.5 flex items-center justify-between gap-2"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-medium text-slate-700">{item.label}</span>
+                                <code className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-sm font-mono truncate">
+                                  {item.syntax}
+                                </code>
+                              </div>
+                              <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-md shrink-0">
+                                {item.shortcut}
+                              </kbd>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <textarea
+                    ref={descTextareaRef}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     onFocus={() => setIsEditingDesc(true)}
-                    placeholder="Markdown形式でカードの詳細な説明を入力..."
-                    rows={5}
+                    onKeyDown={handleDescKeyDown}
+                    placeholder="Markdown形式でカードの詳細な説明を入力... (ショートカットキー対応)"
+                    rows={6}
                     className="w-full p-3 text-sm bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400/20 transition-all font-mono"
                   />
                   {isEditingDesc && (
@@ -490,23 +910,88 @@ export const CardModal: React.FC<CardModalProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="p-3.5 min-h-24 bg-slate-50 border border-slate-200 rounded-xl text-sm prose prose-sm max-w-none prose-slate break-words">
+                <div className="p-3.5 min-h-24 bg-slate-50 border border-slate-200 rounded-xl text-sm space-y-3 break-words">
                   {description.trim() ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        a: ({ ...props }) => (
-                          <a
-                            {...props}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-600 underline hover:text-indigo-800"
-                          />
-                        ),
-                      }}
-                    >
-                      {description}
-                    </ReactMarkdown>
+                    parseMarkdownSegments(description).map((seg, idx) => {
+                      if (seg.type === 'note') {
+                        const noteStyles: Record<
+                          NoteVariant,
+                          { container: string; icon: React.ReactNode }
+                        > = {
+                          info: {
+                            container:
+                              'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950',
+                            icon: (
+                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            ),
+                          },
+                          warn: {
+                            container:
+                              'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950',
+                            icon: (
+                              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                            ),
+                          },
+                          alert: {
+                            container:
+                              'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950',
+                            icon: (
+                              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                            ),
+                          },
+                        };
+                        const style = noteStyles[seg.variant];
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-r-lg flex items-start gap-2.5 ${style.container}`}
+                          >
+                            {style.icon}
+                            <div className="prose prose-sm max-w-none prose-slate break-words flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  a: ({ ...props }) => (
+                                    <a
+                                      {...props}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-indigo-600 underline hover:text-indigo-800"
+                                    />
+                                  ),
+                                }}
+                              >
+                                {seg.content}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={idx}
+                          className="prose prose-sm max-w-none prose-slate break-words"
+                        >
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ ...props }) => (
+                                <a
+                                  {...props}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 underline hover:text-indigo-800"
+                                />
+                              ),
+                            }}
+                          >
+                            {seg.content}
+                          </ReactMarkdown>
+                        </div>
+                      );
+                    })
                   ) : (
                     <span className="text-slate-400 italic">説明はありません。</span>
                   )}
