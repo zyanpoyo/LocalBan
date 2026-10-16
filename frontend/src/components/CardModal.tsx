@@ -640,7 +640,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       {/* モーダル枠 */}
       <div
         ref={modalRef}
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
       >
         {/* モーダルヘッダー */}
         <div className="p-4 sm:p-5 border-b border-slate-200/80 flex items-start justify-between gap-4 bg-slate-50/50">
@@ -685,9 +685,9 @@ export const CardModal: React.FC<CardModalProps> = ({
         </div>
 
         {/* モーダルボディ */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* 左側メインエリア (説明, チェックリスト, 添付) */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="md:col-span-3 space-y-6">
             {/* ラベル表示 */}
             {currentCard.labels.length > 0 && (
               <div>
@@ -886,8 +886,8 @@ export const CardModal: React.FC<CardModalProps> = ({
                     onFocus={() => setIsEditingDesc(true)}
                     onKeyDown={handleDescKeyDown}
                     placeholder="Markdown形式でカードの詳細な説明を入力... (ショートカットキー対応)"
-                    rows={6}
-                    className="w-full p-3 text-sm bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400/20 transition-all font-mono"
+                    rows={12}
+                    className="w-full min-h-[280px] max-h-[60vh] p-3.5 text-sm leading-relaxed bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400/20 transition-all font-mono resize-y [field-sizing:content]"
                   />
                   {isEditingDesc && (
                     <div className="flex items-center gap-2">
@@ -910,7 +910,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="p-3.5 min-h-24 bg-slate-50 border border-slate-200 rounded-xl text-sm space-y-3 break-words">
+                <div className="p-4 min-h-[280px] bg-slate-50 border border-slate-200 rounded-xl text-sm space-y-3 break-words">
                   {description.trim() ? (
                     parseMarkdownSegments(description).map((seg, idx) => {
                       if (seg.type === 'note') {
