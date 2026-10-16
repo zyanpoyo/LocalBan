@@ -5,6 +5,12 @@ import { generate as generateUninstallBat } from './build_uninstall_bat.js';
 
 const rootDir = path.resolve(import.meta.dirname, '..');
 const distDir = path.join(rootDir, 'dist');
+
+// Cargo (Rust) の PATH 自動補完 (ターミナルセッションで PATH 未反映の場合の対策)
+const cargoBin = path.join(process.env.USERPROFILE || process.env.HOME || '', '.cargo', 'bin');
+if (fs.existsSync(cargoBin) && !process.env.PATH?.includes(cargoBin)) {
+  process.env.PATH = `${cargoBin}${path.delimiter}${process.env.PATH || ''}`;
+}
 const exeSrc = path.join(rootDir, 'src-tauri', 'target', 'release', 'LocalBan.exe');
 const version = '2.0.0';
 const zipName = `LocalBan-v${version}-windows.zip`;
