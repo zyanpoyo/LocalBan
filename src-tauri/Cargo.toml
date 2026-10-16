@@ -1,0 +1,29 @@
+[package]
+name = "localban"
+version = "2.0.0"
+description = "LocalBan - Lightweight Offline-First Personal Kanban Board"
+authors = ["zyanpoyo"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "localban_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.10", features = ["v4", "fast-rng"] }
+chrono = { version = "0.4", features = ["serde"] }
+percent-encoding = "2.3"
+
+[dev-dependencies]
+tempfile = "3.12"

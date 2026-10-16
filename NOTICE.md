@@ -6,57 +6,37 @@
 
 ---
 
-## 1. バックエンド / ランタイム (Python)
+## 1. アプリケーションフレームワーク & バックエンド (Rust / Tauri)
 
-### FastAPI
+### Tauri
+- **ライセンス**: Apache License 2.0 / MIT License
+- **著作権**: Copyright (c) 2019-present Tauri Programme within The Commons Conservancy
+- **URL**: https://github.com/tauri-apps/tauri
+
+### rusqlite
 - **ライセンス**: MIT License
-- **著作権**: Copyright (c) 2018 Sebastián Ramírez
-- **URL**: https://github.com/fastapi/fastapi
+- **著作権**: Copyright (c) 2014-present The Rusqlite Developers
+- **URL**: https://github.com/rusqlite/rusqlite
 
-### Starlette
-- **ライセンス**: BSD 3-Clause License
-- **著作権**: Copyright (c) 2018 Encode OSS Ltd.
-- **URL**: https://github.com/encode/starlette
+### serde / serde_json
+- **ライセンス**: Apache License 2.0 / MIT License
+- **著作権**: Copyright (c) 2014-present Erick Tryzelaar and David Tolnay
+- **URL**: https://github.com/serde-rs/serde
 
-### Uvicorn
-- **ライセンス**: BSD 3-Clause License
-- **著作権**: Copyright (c) 2017-present, Encode OSS Ltd.
-- **URL**: https://github.com/encode/uvicorn
+### uuid
+- **ライセンス**: Apache License 2.0 / MIT License
+- **著作権**: Copyright (c) 2013-present The Rust Project Developers
+- **URL**: https://github.com/uuid-rs/uuid
 
-### Pydantic
-- **ライセンス**: MIT License
-- **著作権**: Copyright (c) 2017 to present Pydantic Services Inc. and individual contributors
-- **URL**: https://github.com/pydantic/pydantic
+### chrono
+- **ライセンス**: Apache License 2.0 / MIT License
+- **著作権**: Copyright (c) 2014-present Kang Seonghoon and Chrono contributors
+- **URL**: https://github.com/chronotope/chrono
 
-### python-multipart
-- **ライセンス**: Apache License 2.0
-- **著作権**: Copyright (c) 2024 Andrew Chen Wang
-- **URL**: https://github.com/Kludex/python-multipart
-
-### pystray
-- **ライセンス**: BSD 3-Clause License / LGPL v3
-- **著作権**: Copyright (c) 2015-2022 Moses Palmér
-- **URL**: https://github.com/moses-palmer/pystray
-
-### Pillow
-- **ライセンス**: HPND License (Historical Permission Notice and Disclaimer)
-- **著作権**: Copyright (c) 1997-2011 by Secret Labs AB, Copyright (c) 1995-2011 by Fredrik Lundh, Copyright (c) 2010-2025 by Jeffrey A. Clark and contributors
-- **URL**: https://github.com/python-pillow/Pillow
-
-### anyio
-- **ライセンス**: MIT License
-- **著作権**: Copyright (c) Alex Grönholm
-- **URL**: https://github.com/agronholm/anyio
-
-### h11
-- **ライセンス**: MIT License
-- **著作権**: Copyright (c) 2016 Nathaniel J. Smith and njsmith/h11 contributors
-- **URL**: https://github.com/python-hyper/h11
-
-### PyInstaller
-- **ライセンス**: GPL v2 with Special Exception (バイナリ配布例外条項付き)
-- **著作権**: Copyright (c) 2010-2024, PyInstaller Development Team
-- **URL**: https://github.com/pyinstaller/pyinstaller
+### percent-encoding
+- **ライセンス**: Apache License 2.0 / MIT License
+- **著作権**: Copyright (c) 2013-present The rust-url developers
+- **URL**: https://github.com/servo/rust-url
 
 ---
 

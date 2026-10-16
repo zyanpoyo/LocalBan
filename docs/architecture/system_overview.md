@@ -1,7 +1,7 @@
-# システム全体概要 (System Architecture)
+# システム全体概要 (System Architecture) - v2.0.0
 
-「LocalBan」は、Windows 11 上で単一の実行可能ファイル（`.exe`）として動作する個人用オフラインカンバンボードです。  
-外部通信を行わない完全オフライン設計であり、ローカルサーバーとモダンなWebフロントエンドが協調して動作します。
+「LocalBan」は、Windows 11 上で単一の実行可能ファイル（`LocalBan.exe`）として動作する個人用オフラインカンバンボードです。  
+**Tauri v2 (Full Rust)** を採用し、超軽量・高速な Rust コアバックエンドと、Microsoft Edge WebView2 によるモダンな UI フロントエンドが型安全なネイティブ IPC で協調動作します。
 
 ---
 
@@ -10,19 +10,22 @@
 ```mermaid
 flowchart TD
     subgraph Host ["Windows 11 (クライアントPC)"]
-        EXE["LocalBan.exe (PyInstaller単一バイナリ)"]
+        EXE["LocalBan.exe (Tauri v2 単一ネイティブバイナリ)"]
 
         subgraph Process ["LocalBan プロセス空間"]
-            Lock{"多重起動制御\n(server.json / socket ping)"}
-            InitStd["標準出力/エラー出力リダイレクト\n(--noconsole クラッシュ防止)"]
-            
-            subgraph Threads ["スレッドモデル"]
-                Tray["タスクトレイ常駐 (メインスレッド: pystray)\n・LocalBanを開く\n・安全な終了"]
-                Server["ローカルWebサーバー (バックグラウンドスレッド: FastAPI / Uvicorn)\n・127.0.0.1 のみバインド\n・セッショントークン検証"]
+            Single["単一インスタンス制御\n(tauri-plugin-single-instance)\n2重起動時は既存ウィンドウを前面化"]
+
+            subgraph RustCore ["Rust Core Backend"]
+                Tray["タスクトレイ常駐\n・×ボタンで非表示\n・アイコンクリックで復帰\n・メニューから完全終了"]
+                IPC["Tauri Commands (#[tauri::command])\n型安全なネイティブIPC"]
+                Proto["カスタムプロトコル\n(localban://attachments/{id})\n安全なインライン画像配信"]
+                DBEngine["SQLite エンジン (rusqlite)\n・WALモード / 外部キー有効\n・日次オンラインバックアップ"]
+            end
+
+            subgraph WebViewClient ["UI クライアント (Microsoft Edge WebView2)"]
+                UI["React 19 + TypeScript + Tailwind CSS\n・@hello-pangea/dnd\n・@tauri-apps/api (invoke)\n・BroadcastChannel 複数ウィンドウ同期"]
             end
         end
-
-        Browser["既定ブラウザ (UIクライアント)\nReact 19 + TypeScript + Tailwind CSS\n・@hello-pangea/dnd\n・BroadcastChannel 複数タブ同期"]
 
         subgraph LocalStorage ["永続化データ (%APPDATA%/LocalBan/)"]
             DB[("SQLite データベース\n(localban.db)\n・WALモード / 外部キー有効")]
@@ -31,17 +34,15 @@ flowchart TD
             Logs[("実行ログ\n(logs/app.log)")]
         end
 
-        EXE --> Lock
-        Lock -->|"既存稼働中"| OpenExisting["既存ブラウザタブを開いて即終了"]
-        Lock -->|"新規起動"| InitStd
-        InitStd --> Tray
-        InitStd --> Server
-        Server -->|"自動起動 (webbrowser.open)"| Browser
-        Browser <-->|"REST API (X-LocalBan-Token)"| Server
-        Server <--> DB
-        Server <--> Files
-        Server <--> Backups
-        InitStd --> Logs
+        EXE --> Single
+        Single -->|"既存起動中"| FocusExisting["既存ウィンドウを最前面化して終了"]
+        Single -->|"新規起動"| RustCore
+        RustCore <-->|"ネイティブIPC"| UI
+        UI -->|"画像プレビュー"| Proto
+        Proto --> Files
+        DBEngine <--> DB
+        DBEngine <--> Files
+        DBEngine <--> Backups
     end
 ```
 
@@ -50,15 +51,17 @@ flowchart TD
 ## 2. コア設計原則
 
 1. **完全ゼロ設定 & ポータブル**:
-   - インストーラーや事前設定は不要。`LocalBan.exe` を実行するだけで `%APPDATA%/LocalBan` 配下にデータベースやフォルダが自動初期化され、ブラウザが起動します。
-2. **完全オフライン動作**:
-   - 外部CDN、Google Fonts、外部テレメトリ送信等は一切排除。全CSS・JavaScript・アイコン（`lucide-react`）・フォントが単一exe内にバンドルされています。
-3. **安全な2段階削除フロー**:
-   - カンバン画面からは「アーカイブ」のみ可能（誤操作によるデータ喪失を防止）。
+   - インストーラーや外部ランタイム（Python等）の事前導入は一切不要。`LocalBan.exe` 単体をダブルクリックするだけで `%APPDATA%/LocalBan` 配下にデータベースやフォルダが自動初期化され、独立したウィンドウが起動します。
+2. **完全オフライン & ネイティブ完結**:
+   - 外部通信、CDN、テレメトリ送信等は一切行いません。
+   - バックエンド処理はすべて Rust でネイティブコンパイルされており、起動時間の大幅な短縮と省メモリ（数十MB程度）を実現しています。
+3. **常駐型クライアントアプリ (パターン2)**:
+   - ウィンドウ右上の「×（閉じる）」ボタンを押すとタスクトレイに格納され、トレイアイコンのクリックや `LocalBan.exe` の再起動で一瞬で復帰します。
+   - アプリの完全終了は画面右上の「終了」ボタン、またはタスクトレイメニューの「終了」から安全に行えます。
+4. **安全な2段階削除フロー**:
+   - 通常画面からは「アーカイブ」のみ可能（誤操作によるデータ喪失を防止）。
    - リスト削除時も所属カードは自動的にアーカイブに退避されます。
    - 「アーカイブ一覧」モーダルから明示的に操作した場合のみ、DBレコードおよびディスク上の添付ファイルが物理削除されます。
-4. **使いやすい終了フロー**:
-   - タスクトレイアイコンの右クリックメニュー「終了」と、Web画面右上の「電源（終了）」ボタンの両方に対応。
 
 ---
 
@@ -66,12 +69,11 @@ flowchart TD
 
 | 脅威 / リスク | 対策実装 |
 |---|---|
-| **ローカルAPIへの外部CSRF / DNS Rebinding** | ・`127.0.0.1` にのみバインド（`0.0.0.0` は禁止）。<br>・FastAPI ミドルウェアで `Host` ヘッダー（`127.0.0.1`, `localhost`）を検証。<br>・書き込みリクエストで `Origin` ヘッダーを検証。<br>・サーバー起動時に一意なランダムトークン（`SESSION_TOKEN`）を生成し、全 `/api/*` リクエストで `X-LocalBan-Token` ヘッダーを厳格検証。 |
-| **添付ファイル経由の XSS** | ・ディスク保存ファイル名は `uuid4().hex` とし、ユーザー指定のファイル名はパスに使用しない。<br>・レスポンスに `X-Content-Type-Options: nosniff` および `X-Frame-Options: DENY` を付与。<br>・SVG や HTML 等のスクリプト実行リスクのあるファイルは強制ダウンロード（`Content-Disposition: attachment`）として配信。 |
-| **パストラバーサル攻撃** | ・ダウンロードおよび削除処理時、対象パスが専用ディレクトリ配下にあるかを `path.resolve().is_relative_to(attachments_dir)` で検証。 |
-| **Markdown 説明文の XSS** | ・`react-markdown` で生HTML解釈（`rehype-raw`）を無効化。<br>・リンクスキームを `http:` / `https:` に限定し、`target="_blank" rel="noopener noreferrer"` を強制。 |
-| **過大ファイルアップロード** | ・1ファイルあたり最大50MBの容量上限を設定（超過時は即座に 413 エラー）。 |
-| **本番APIエンドポイントの露出** | ・PyInstaller 実行時（本番バイナリ）は `/docs`, `/redoc`, `/openapi.json` を非公開化。 |
+| **外部ネットワークからの不正アクセス / CSRF** | ・外部ポートをリッスンする HTTP サーバーを持たず、OS の安全なネイティブ IPC チャネル（Tauri Commands）経由で通信。<br>・外部ブラウザや悪意あるサイトからの直接 API 呼び出しが物理的に不可能。 |
+| **添付ファイル経由の XSS** | ・ディスク保存ファイル名は `uuid4().simple` とし、ユーザー指定ファイル名はパスに使用しない。<br>・カスタムプロトコル（`localban://`）配信時に `X-Content-Type-Options: nosniff` を付与。<br>・SVG や HTML 等のスクリプト実行リスクのあるファイルはインライン表示を拒否し、強制ダウンロード扱いとする。 |
+| **パストラバーサル攻撃** | ・添付ファイルの解決時、ファイル名のみを抽出し、`attachments` ディレクトリ配下であることを `safe_resolve_attachment_path` で厳格に検証。 |
+| **Markdown 説明文の XSS** | ・`react-markdown` で生HTML解釈（`rehype-raw`）を無効化。<br>・リンククリック時は `@tauri-apps/plugin-opener` を使用して OS 既定のブラウザで安全に開く。 |
+| **過大ファイルアップロード** | ・添付ファイルアップロード時に最大50MBの容量上限を Rust コア層で検証（超過時は即座にエラー拒否）。 |
 
 ---
 
@@ -79,37 +81,30 @@ flowchart TD
 
 ### (1) 起動フロー
 1. `LocalBan.exe` をダブルクリックして起動。
-2. `init_logging_redirect()` により、Windows GUIモード（`--noconsole`）時の `sys.stdout` / `sys.stderr` を `%APPDATA%/LocalBan/logs/app.log` へリダイレクト（Uvicornクラッシュ防止）。
-3. `%APPDATA%/LocalBan/server.json` の存在とポート疎通をチェック：
-   - 既存サーバーが応答した場合：そのURLをブラウザで開いて自プロセスは即終了（二重起動防止）。
-   - 存在しない、または応答がない場合：空きポート（デフォルト8000〜）を探索してバインド。
-4. Uvicorn サーバーをバックグラウンドスレッドで起動。
-5. ブラウザを自動起動（`http://127.0.0.1:{PORT}/?token={TOKEN}`）。
-6. メインスレッドで `pystray` トレイアイコンを開始。
+2. `tauri-plugin-single-instance` により、同一プロセスの起動有無をチェック：
+   - 既に起動している場合：既存ウィンドウを `show()` + `unminimize()` + `set_focus()` で最前面に復帰させ、新プロセスは即時終了。
+   - 新規起動の場合：`%APPDATA%/LocalBan` の各フォルダを作成し、SQLite スキーマ初期化および日次バックアップを実行。
+3. 独立したデスクトップクライアントウィンドウ（Edge WebView2）を生成・表示。
+4. Windows タスクトレイ（通知領域）に「LocalBan」アイコンを常駐。
 
-### (2) 終了フロー
-- **Web UIからの終了**:
-  - 右上の電源ボタン → 確認ダイアログ → `/api/system/shutdown` 呼び出し。
-  - サーバー停止コールバックが発火し、Uvicorn の `should_exit = True` を設定してトレイアイコンを停止、完全終了。
+### (2) 最小化・トレイ格納フロー
+- ウィンドウ右上の「×（閉じる）」ボタンが押された場合：
+  - `WindowEvent::CloseRequested` イベントをフックし、`api.prevent_close()` でプロセス終了をキャンセル。
+  - ウィンドウを `hide()` してタスクトレイに格納。
+
+### (3) 終了フロー
+- **画面からの終了**:
+  - 右上の「終了」ボタン → 確認ダイアログ → `shutdown_app` コマンド呼び出し。
+  - `app_handle.exit(0)` によりプロセスを完全終了。
 - **タスクトレイからの終了**:
-  - トレイアイコン右クリック →「終了」→ `server.should_exit = True` を設定し、`server.json` をクリーンアップして終了。
+  - トレイアイコン右クリック →「終了」メニュー選択 → `app.exit(0)` により完全終了。
 
-### (3) アンインストールフロー（セキュリティ・データ保護設計）
-- **Web UI / API からのアンインストール排除**:
-  - Web画面やバックエンドAPIにはアンインストール用エンドポイントを一切配置しません。これにより、悪意ある外部WebページからのCSRF攻撃や誤操作による全データ損失を根本から防止します。
+### (4) アンインストールフロー（セキュリティ・データ保護設計）
+- **画面内からのアンインストール操作排除**:
+  - 誤操作による全データ損失を防止するため、画面内にアンインストールボタンは配置しません。
 - **同梱の `uninstall.bat` によるローカル操作**:
   - 配布ZIP内に同梱された `uninstall.bat` を実行。
   - Windows ネイティブの GUI 確認ダイアログ（PowerShell MessageBox）による二重確認。
   - 実行中の `LocalBan.exe` プロセスを自動停止。
   - `%APPDATA%/LocalBan/` の永続化データ（DB、添付ファイル、バックアップ、ログ等）を完全削除。
   - 展開先フォルダ内の本体ファイル（`LocalBan.exe`）を削除し、完了ダイアログを表示。
-
----
-
-## 5. フロントエンド・リアルタイム同期機能
-
-- **複数ブラウザタブ間の同期**:
-  - Web標準の `BroadcastChannel('localban_sync')` を使用。
-  - いずれかのタブでカードの移動、編集、削除、アーカイブ等の操作が行われた際、全タブに変更イベントを同報。別タブの画面がリロード不要で自動最新化されます。
-- **リアルタイム保存状態インジケーター**:
-  - API通信ライフサイクルと連動し、ヘッダーに「✓ 保存済み」「⟳ 保存中...」「⚠ 保存エラー」を常時表示。

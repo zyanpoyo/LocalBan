@@ -44,7 +44,9 @@ import {
   uploadAttachment,
   deleteAttachment,
   getAttachmentDownloadUrl,
+  downloadAttachmentFile,
 } from '../api';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 interface CardModalProps {
   card: Card;
@@ -1104,13 +1106,22 @@ export const CardModal: React.FC<CardModalProps> = ({
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
-                                    a: ({ ...props }) => (
+                                    a: ({ href, children, ...props }) => (
                                       <a
                                         {...props}
+                                        href={href}
+                                        onClick={(e) => {
+                                          if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+                                            e.preventDefault();
+                                            openUrl(href).catch(console.error);
+                                          }
+                                        }}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-indigo-600 underline hover:text-indigo-800"
-                                      />
+                                        className="text-indigo-600 underline hover:text-indigo-800 cursor-pointer"
+                                      >
+                                        {children}
+                                      </a>
                                     ),
                                   }}
                                 >
@@ -1129,13 +1140,22 @@ export const CardModal: React.FC<CardModalProps> = ({
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                a: ({ ...props }) => (
+                                a: ({ href, children, ...props }) => (
                                   <a
                                     {...props}
+                                    href={href}
+                                    onClick={(e) => {
+                                      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+                                        e.preventDefault();
+                                        openUrl(href).catch(console.error);
+                                      }
+                                    }}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-indigo-600 underline hover:text-indigo-800"
-                                  />
+                                    className="text-indigo-600 underline hover:text-indigo-800 cursor-pointer"
+                                  >
+                                    {children}
+                                  </a>
                                 ),
                               }}
                             >
@@ -1345,14 +1365,15 @@ export const CardModal: React.FC<CardModalProps> = ({
                           {(att.file_size / 1024).toFixed(1)} KB
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <a
-                            href={getAttachmentDownloadUrl(att.id, false)}
-                            download
-                            className="text-[11px] text-indigo-600 hover:underline flex items-center gap-0.5"
+                          <button
+                            type="button"
+                            onClick={() => downloadAttachmentFile(att.id, att.filename)}
+                            className="text-[11px] text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
+                            title="保存"
                           >
                             <Download className="w-3 h-3" />
                             DL
-                          </a>
+                          </button>
                           {isImage && (
                             <button
                               onClick={() => handleToggleCover(att.id)}

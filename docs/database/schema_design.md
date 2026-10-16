@@ -1,7 +1,8 @@
 # データスキーマ設計 (Database Schema Design)
 
 LocalBan のデータはすべてローカルの SQLite データベースファイル（`%APPDATA%/LocalBan/localban.db`）に永続化されます。  
-並行処理時のパフォーマンス向上とデータ整合性維持のため、WAL（Write-Ahead Logging）モードおよび外部キー制約を強制有効化しています。
+並行処理時のパフォーマンス向上とデータ整合性維持のため、WAL（Write-Ahead Logging）モードおよび外部キー制約を強制有効化しています。  
+（※ v2.0.0 より Rust の `rusqlite` クレートによる直接接続・管理へ刷新され、v1.x と 100% 互換のスキーマでそのままデータを引き継ぎます）
 
 ---
 
