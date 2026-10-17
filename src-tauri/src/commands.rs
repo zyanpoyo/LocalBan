@@ -6,12 +6,13 @@ use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
 use crate::config::{
-    get_attachments_dir, safe_resolve_attachment_path, APP_NAME, APP_VERSION, MAX_UPLOAD_SIZE,
+    get_attachments_dir, load_settings, save_settings, safe_resolve_attachment_path, AppSettings,
+    APP_NAME, APP_VERSION, MAX_UPLOAD_SIZE,
 };
 use crate::db::get_connection;
 use crate::models::{
-    AttachmentResponse, BoardStateResponse, CardResponse, ChecklistItemResponse,
-    ChecklistResponse, LabelResponse, ListResponse, SystemStatusResponse,
+    AppSettingsResponse, AttachmentResponse, BoardStateResponse, CardResponse,
+    ChecklistItemResponse, ChecklistResponse, LabelResponse, ListResponse, SystemStatusResponse,
 };
 
 fn row_to_list(row: &rusqlite::Row) -> rusqlite::Result<ListResponse> {
@@ -1256,6 +1257,23 @@ pub fn get_system_status() -> SystemStatusResponse {
         app: APP_NAME.to_string(),
         version: APP_VERSION.to_string(),
     }
+}
+
+#[tauri::command]
+pub fn get_app_settings() -> AppSettingsResponse {
+    let settings = load_settings();
+    crate::CLOSE_TO_TRAY.store(settings.close_to_tray, std::sync::atomic::Ordering::SeqCst);
+    AppSettingsResponse {
+        close_to_tray: settings.close_to_tray,
+    }
+}
+
+#[tauri::command]
+pub fn update_app_settings(close_to_tray: bool) -> Result<AppSettingsResponse, String> {
+    let settings = AppSettings { close_to_tray };
+    save_settings(&settings)?;
+    crate::CLOSE_TO_TRAY.store(close_to_tray, std::sync::atomic::Ordering::SeqCst);
+    Ok(AppSettingsResponse { close_to_tray })
 }
 
 #[tauri::command]

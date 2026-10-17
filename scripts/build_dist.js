@@ -43,8 +43,13 @@ if (!fs.existsSync(distDir)) {
 
 // ターゲット exe を dist/ にもコピー
 const distExe = path.join(distDir, 'LocalBan.exe');
-fs.copyFileSync(exeSrc, distExe);
-console.log(`Copied LocalBan.exe to ${distExe}`);
+try {
+  fs.copyFileSync(exeSrc, distExe);
+  console.log(`Copied LocalBan.exe to ${distExe}`);
+} catch (err) {
+  console.warn(`Warning: Could not copy to ${distExe} (likely running). Please close LocalBan.exe to update dist copy.`);
+}
+
 
 // インストーラー (NSIS setup.exe) を dist/ にコピー
 const nsisDir = path.join(rootDir, 'src-tauri', 'target', 'release', 'bundle', 'nsis');

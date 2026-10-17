@@ -47,6 +47,42 @@ pub fn get_db_path() -> PathBuf {
     get_app_dir().join("localban.db")
 }
 
+pub fn get_settings_path() -> PathBuf {
+    get_app_dir().join("settings.json")
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct AppSettings {
+    pub close_to_tray: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            close_to_tray: true,
+        }
+    }
+}
+
+pub fn load_settings() -> AppSettings {
+    let path = get_settings_path();
+    if let Ok(content) = std::fs::read_to_string(path) {
+        if let Ok(settings) = serde_json::from_str::<AppSettings>(&content) {
+            return settings;
+        }
+    }
+    AppSettings::default()
+}
+
+pub fn save_settings(settings: &AppSettings) -> Result<(), String> {
+    let base = get_app_dir();
+    std::fs::create_dir_all(&base).map_err(|e| e.to_string())?;
+    let path = get_settings_path();
+    let json = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
+    std::fs::write(path, json).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn init_dirs() -> std::io::Result<()> {
     let base = get_app_dir();
     std::fs::create_dir_all(base.join("attachments"))?;

@@ -14,12 +14,18 @@ frontend/dist/
 frontend/.vite/
 .eslintcache
 
-# PyInstaller / Build
+# PyInstaller / Build / MSIX
 build/
 dist/
 *.exe
 *.manifest
 *.spec
+*.msix
+*.appx
+*.msixbundle
+*.pri
+*.pfx
+*.cer
 
 # Rust / Tauri
 src-tauri/target/
@@ -43,10 +49,17 @@ desktop.ini
 .idea/
 *.swp
 
-# Security / Secrets
+# Security / Secrets / Private Store Credentials
 .env
 .env.*
 *.env
 *.pem
 *.key
+docs/microsoft_store_guide.md
+
+# Store Promotional Assets (Screenshots, Banners, Artwork)
+assets/store/promotional/
+promotional/
+
+
 

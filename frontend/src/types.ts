@@ -63,3 +63,7 @@ export interface BoardState {
 }
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export interface AppSettings {
+  close_to_tray: boolean;
+}
