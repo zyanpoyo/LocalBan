@@ -43,7 +43,8 @@
         "languages": [
           "Japanese",
           "English"
-        ]
+        ],
+        "installerHooks": "windows/hooks.nsh"
       }
     }
   },
