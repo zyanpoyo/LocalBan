@@ -25,6 +25,11 @@ if (Test-Path -LiteralPath $appData) {
     Remove-Item -LiteralPath $appData -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+$localAppData = Join-Path $env:LOCALAPPDATA "com.localban.desktop"
+if (Test-Path -LiteralPath $localAppData) {
+    Remove-Item -LiteralPath $localAppData -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $scriptDir = (Get-Location).Path
 $exePath = Join-Path $scriptDir "LocalBan.exe"
 if (Test-Path -LiteralPath $exePath) {
