@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 pub const APP_NAME: &str = "LocalBan";
-pub const APP_VERSION: &str = "2.0.0";
+pub const APP_VERSION: &str = "2.1.0";
 pub const MAX_UPLOAD_SIZE: usize = 50 * 1024 * 1024; // 50MB
 
 pub fn get_app_dir() -> PathBuf {

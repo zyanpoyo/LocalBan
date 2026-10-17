@@ -1,4 +1,4 @@
-# LocalBan (ローカルバン) v2.0.0
+# LocalBan (ローカルバン) v2.1.0
 
 軽量で直感的に操作できる、完全オフライン動作の Windows 11 向け個人用カンバンボードです。  
 **Tauri v2 (Full Rust)** による独立したネイティブデスクトップクライアントアプリとして動作し、外部通信なし・ユーザー認証なしで完全オフライン動作。単一の `LocalBan.exe` をダブルクリックするだけで直ちに利用可能です。
@@ -7,6 +7,8 @@
 
 ## 🌟 主な特徴
 
+- **初回起動時のインタラクティブ・ガイド（コーチマーク）**:
+  - アプリの初回起動時に、リスト作成やカード操作、キーボードショートカットなどの基本操作をわかりやすくステップバイステップで案内。ヘッダーの「？」アイコンからいつでも再表示可能。
 - **完全ネイティブ・オフライン完結 (Tauri v2 + Full Rust)**:
   - バックエンド処理・SQLite 操作・画像配信をすべて **Rust** で完結。爆速な起動と省メモリを実現。
   - すべてのデータは `%APPDATA%\LocalBan` 内の SQLite データベースおよびローカルフォルダに安全に保存されます。
@@ -47,7 +49,7 @@
   1. [`dist/LocalBan.exe`](file:///c:/Users/ymasa/MyProject/LocalBan/dist/LocalBan.exe) をダブルクリックして実行します。
   2. 独立したデスクトップウィンドウ（LocalBan）が即座に立ち上がります。
 - **インストール版（スタートメニュー・ショートカット登録）**:
-  1. [`dist/LocalBan-v2.0.0-setup.exe`](file:///c:/Users/ymasa/MyProject/LocalBan/dist/LocalBan-v2.0.0-setup.exe) を実行してセットアップします。
+  1. [`dist/LocalBan-v2.1.0-setup.exe`](file:///c:/Users/ymasa/MyProject/LocalBan/dist/LocalBan-v2.1.0-setup.exe) を実行してセットアップします。
   2. デスクトップおよびスタートメニューにショートカットが登録され、Windows の「アプリと機能」からアンインストールも可能になります。
 
 > [!NOTE]
@@ -139,13 +141,13 @@ cd ..
 ```bash
 node scripts/build_dist.js
 ```
-ビルドが完了すると、`dist/LocalBan.exe` および `dist/LocalBan-v2.0.0-windows.zip` が生成されます。
+ビルドが完了すると、`dist/LocalBan.exe` および `dist/LocalBan-v2.1.0-windows.zip` が生成されます。
 
 ### Microsoft Store 提出用 MSIX パッケージのビルド
 ```bash
 node scripts/build_msix.js
 ```
-ビルドが完了すると、`dist/LocalBan-v2.0.0-x64.msix` が生成されます。
+ビルドが完了すると、`dist/LocalBan-v2.1.0-x64.msix` が生成されます。
 
 ---
 

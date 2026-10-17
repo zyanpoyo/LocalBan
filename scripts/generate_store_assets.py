@@ -65,7 +65,7 @@ def draw_app_header_bar(
         draw,
         wx + 172,
         hy + 18,
-        "v2.0.0",
+        "v2.1.0",
         (236, 253, 245),
         (4, 120, 87),
         font_badge,

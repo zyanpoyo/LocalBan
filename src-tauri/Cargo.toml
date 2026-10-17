@@ -1,6 +1,6 @@
 [package]
 name = "localban"
-version = "2.0.0"
+version = "2.1.0"
 description = "LocalBan - Lightweight Offline-First Personal Kanban Board"
 authors = ["zyanpoyo"]
 license = "MIT"

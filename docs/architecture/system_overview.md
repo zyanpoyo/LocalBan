@@ -1,4 +1,4 @@
-# システム全体概要 (System Architecture) - v2.0.0
+# システム全体概要 (System Architecture) - v2.1.0
 
 「LocalBan」は、Windows 11 上で単一の実行可能ファイル（`LocalBan.exe`）として動作する個人用オフラインカンバンボードです。  
 **Tauri v2 (Full Rust)** を採用し、超軽量・高速な Rust コアバックエンドと、Microsoft Edge WebView2 によるモダンな UI フロントエンドが型安全なネイティブ IPC で協調動作します。

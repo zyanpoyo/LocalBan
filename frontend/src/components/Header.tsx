@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
           LocalBan
         </h1>
         <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/80">
-          v2.0.0
+          v2.1.0
         </span>
         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">
           オフライン
