@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod commands;
 pub mod config;
 pub mod db;
@@ -257,6 +258,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use tempfile::tempdir;
 
     use std::sync::Mutex;
@@ -269,7 +271,7 @@ mod tests {
 
     impl TestEnv {
         fn new() -> Self {
-            let guard = TEST_MUTEX.lock().unwrap();
+            let guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
             let dir = tempdir().expect("Failed to create tempdir");
             std::env::set_var("LOCALBAN_DATA_DIR", dir.path().to_str().unwrap());
             config::init_dirs().expect("Failed to init dirs");
@@ -462,28 +464,40 @@ mod tests {
         assert!(commands::validate_external_url("data:text/html,<h1>evil</h1>").is_err());
     }
 
-    // 11. バックアップ & 復元（スナップショット作成・巻き戻し・セーフティバックアップ）の検証
+    // 11. バックアップ & 復元（画像含む完全スナップショット作成・巻き戻し・セーフティバックアップ）の検証
     #[test]
     fn test_backup_and_restore_database() {
         let _env = TestEnv::new();
 
-        // 初期状態でカードを1件追加
+        // 初期状態でカードを1件追加し、画像を添付
         let board_initial = commands::get_board_state().unwrap();
         let list_id = board_initial.lists[0].id.clone();
         let new_card = commands::create_card(list_id.clone(), "バックアップ対象カード".into(), None, None).unwrap();
+        let fake_image_data = b"fake-png-image-binary-data".to_vec();
+        let attachment = commands::upload_attachment(
+            new_card.id.clone(),
+            "photo.png".into(),
+            "image/png".into(),
+            fake_image_data.clone(),
+        ).unwrap();
 
         let board_before_backup = commands::get_board_state().unwrap();
         let card_count_before = board_before_backup.cards.len();
 
-        // 手動スナップショットを作成
+        // 手動完全スナップショット (.localban) を作成
         let snapshot = commands::create_internal_backup().unwrap();
         assert!(snapshot.filename.starts_with("localban_manual_"));
+        assert!(snapshot.filename.ends_with(".localban"));
         assert!(snapshot.size_bytes > 0);
 
-        // スナップショット後にカードをさらに追加（データ変更）
+        // スナップショット後にカードをさらに追加し、既存カードの添付ファイルを削除
         let _extra_card = commands::create_card(list_id.clone(), "追加されたカード".into(), None, None).unwrap();
+        let _ = commands::delete_attachment(attachment.id.clone()).unwrap();
+
         let board_modified = commands::get_board_state().unwrap();
         assert_eq!(board_modified.cards.len(), card_count_before + 1);
+        let modified_target_card = board_modified.cards.iter().find(|c| c.id == new_card.id).unwrap();
+        assert_eq!(modified_target_card.attachments.len(), 0);
 
         // 一覧取得でスナップショットが存在することを確認
         let backups = commands::list_internal_backups().unwrap();
@@ -493,21 +507,73 @@ mod tests {
         let restore_res = commands::restore_from_internal_backup(snapshot.filename.clone()).unwrap();
         assert!(restore_res.success);
         assert_eq!(restore_res.cards_count, card_count_before);
+        assert_eq!(restore_res.attachments_restored, 1);
 
-        // 復元後のDB状態を確認（余分なカードが消え、スナップショット時のカード構成に戻っていること）
+        // 復元後のDB状態を確認（余分なカードが消え、スナップショット時のカード構成および添付ファイルが戻っていること）
         let board_after_restore = commands::get_board_state().unwrap();
         assert_eq!(board_after_restore.cards.len(), card_count_before);
-        assert!(board_after_restore.cards.iter().any(|c| c.id == new_card.id));
+        let restored_card = board_after_restore.cards.iter().find(|c| c.id == new_card.id).unwrap();
+        assert_eq!(restored_card.attachments.len(), 1);
+        assert_eq!(restored_card.attachments[0].id, attachment.id);
 
-        // 復元直前にセーフティバックアップ (pre_restore_*.db) が自動生成されていることを確認
+        // ディスク上の実体ファイルも正しく復元されていること
+        let restored_file_path = config::get_attachments_dir().join(&attachment.stored_filename);
+        assert!(restored_file_path.exists());
+        let restored_bytes = std::fs::read(&restored_file_path).unwrap();
+        assert_eq!(restored_bytes, fake_image_data);
+
+        // 復元直前にセーフティバックアップ (pre_restore_*.localban) が自動生成されていることを確認
         let backups_after = commands::list_internal_backups().unwrap();
-        assert!(backups_after.iter().any(|b| b.is_safety_backup));
+        assert!(backups_after.iter().any(|b| b.is_safety_backup && b.filename.ends_with(".localban")));
     }
 
-    // 12. パストラバーサル防止のセキュリティ検証
+    // 12. 日次自動バックアップが完全アーカイブ (.localban) として生成されることの検証
+    #[test]
+    fn test_daily_backup_creates_full_backup() {
+        let _env = TestEnv::new();
+
+        let today_str = Utc::now().format("%Y%m%d").to_string();
+        let expected_name = format!("localban_{}.localban", today_str);
+        let backup_path = config::get_backups_dir().join(&expected_name);
+        // init_database() 時に作成された初期バックアップを一旦削除して画像付き状態での生成を検証
+        let _ = std::fs::remove_file(&backup_path);
+
+        // 画像付きカードを作成
+        let board = commands::get_board_state().unwrap();
+        let card = commands::create_card(board.lists[0].id.clone(), "日次テストカード".into(), None, None).unwrap();
+        let fake_data = b"daily-backup-attachment-test".to_vec();
+        let _att = commands::upload_attachment(card.id, "daily.png".into(), "image/png".into(), fake_data).unwrap();
+
+        // 日次バックアップを実行
+        crate::backup::perform_daily_backup(7);
+
+        let backups = commands::list_internal_backups().unwrap();
+
+        let daily_backup = backups.iter().find(|b| b.filename == expected_name);
+        assert!(daily_backup.is_some(), "Daily backup .localban file should exist");
+        let daily = daily_backup.unwrap();
+        assert!(daily.size_bytes > 0);
+
+        // ZIPアーカイブの内容を検証
+        let backup_path = config::get_backups_dir().join(&expected_name);
+        let file = std::fs::File::open(&backup_path).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
+        let mut entry_names = Vec::new();
+        for i in 0..archive.len() {
+            entry_names.push(archive.by_index(i).unwrap().name().to_string());
+        }
+        assert!(entry_names.contains(&"localban.db".to_string()));
+        assert!(entry_names.contains(&"manifest.json".to_string()));
+        assert!(entry_names.iter().any(|n| n.starts_with("attachments/")));
+    }
+
+    // 13. パストラバーサル防止のセキュリティ検証
     #[test]
     fn test_internal_backup_path_traversal_prevention() {
         let _env = TestEnv::new();
+        assert!(commands::restore_from_internal_backup("../evil.localban".into()).is_err());
+        assert!(commands::restore_from_internal_backup("sub/evil.localban".into()).is_err());
+        assert!(commands::restore_from_internal_backup("..\\evil.localban".into()).is_err());
         assert!(commands::restore_from_internal_backup("../evil.db".into()).is_err());
         assert!(commands::restore_from_internal_backup("sub/evil.db".into()).is_err());
         assert!(commands::restore_from_internal_backup("..\\evil.db".into()).is_err());
