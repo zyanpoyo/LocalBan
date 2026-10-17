@@ -266,7 +266,15 @@ export async function permanentlyDeleteCard(id: string): Promise<void> {
   notifySync('PERMANENT_DELETE_CARD');
 }
 
-// System
+// System & Settings
+export async function fetchAppSettings(): Promise<{ close_to_tray: boolean }> {
+  return callCommand<{ close_to_tray: boolean }>('get_app_settings');
+}
+
+export async function updateAppSettings(closeToTray: boolean): Promise<{ close_to_tray: boolean }> {
+  return callCommand<{ close_to_tray: boolean }>('update_app_settings', { closeToTray }, true);
+}
+
 export async function shutdownServer(): Promise<void> {
   try {
     await invoke('shutdown_app');

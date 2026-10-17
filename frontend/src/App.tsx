@@ -16,6 +16,7 @@ import { CardModal } from './components/CardModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ShortcutHelpModal } from './components/ShortcutHelpModal';
+import { InfoModal } from './components/InfoModal';
 import { Loader2, PowerOff } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -28,6 +29,7 @@ export const App: React.FC = () => {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isShutdownOpen, setIsShutdownOpen] = useState(false);
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
 
   // リスト削除確認モーダル
@@ -222,7 +224,12 @@ export const App: React.FC = () => {
   }
 
   const isAnyModalOpen =
-    !!selectedCard || isArchiveOpen || isShutdownOpen || isShortcutHelpOpen || !!deletingList;
+    !!selectedCard ||
+    isArchiveOpen ||
+    isShutdownOpen ||
+    isShortcutHelpOpen ||
+    isInfoOpen ||
+    !!deletingList;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 selection:bg-indigo-500 selection:text-white">
@@ -231,6 +238,7 @@ export const App: React.FC = () => {
         onOpenArchive={() => setIsArchiveOpen(true)}
         onOpenShutdown={() => setIsShutdownOpen(true)}
         onOpenShortcutHelp={() => setIsShortcutHelpOpen(true)}
+        onOpenInfo={() => setIsInfoOpen(true)}
         archivedCount={0}
       />
 
@@ -277,6 +285,12 @@ export const App: React.FC = () => {
       <ShortcutHelpModal
         isOpen={isShortcutHelpOpen}
         onClose={() => setIsShortcutHelpOpen(false)}
+      />
+
+      {/* アプリ情報・プライバシーポリシー・免責事項モーダル */}
+      <InfoModal
+        isOpen={isInfoOpen}
+        onClose={() => setIsInfoOpen(false)}
       />
 
       {/* リスト削除確認モーダル 【対応必須 4】 */}

@@ -77,3 +77,8 @@ pub struct SystemStatusResponse {
     pub app: String,
     pub version: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppSettingsResponse {
+    pub close_to_tray: bool,
+}

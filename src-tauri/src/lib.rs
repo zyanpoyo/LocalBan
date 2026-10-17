@@ -12,6 +12,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{http::Response, Manager, WindowEvent};
 
 pub static SHOULD_EXIT: AtomicBool = AtomicBool::new(false);
+pub static CLOSE_TO_TRAY: AtomicBool = AtomicBool::new(true);
 
 const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
@@ -41,6 +42,8 @@ pub fn log_to_file(msg: &str) {
 pub fn run() {
     log_to_file("run() started");
     let _ = db::init_database();
+    let initial_settings = config::load_settings();
+    CLOSE_TO_TRAY.store(initial_settings.close_to_tray, Ordering::SeqCst);
 
     let mut builder = tauri::Builder::default();
 
@@ -121,10 +124,10 @@ pub fn run() {
                 .menu(&menu)
                 .show_menu_on_left_click(false);
 
-            if let Some(icon) = app.default_window_icon() {
-                tray_builder = tray_builder.icon(icon.clone());
-            } else if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")) {
+            if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")) {
                 tray_builder = tray_builder.icon(icon);
+            } else if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
             }
 
             let _tray = tray_builder
@@ -161,6 +164,9 @@ pub fn run() {
 
             log_to_file("setup completing, showing main window");
             if let Some(window) = app.get_webview_window("main") {
+                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/128x128.png")) {
+                    let _ = window.set_icon(icon);
+                }
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
@@ -169,15 +175,21 @@ pub fn run() {
                 log_to_file("WARNING: main window not found in setup!");
             }
 
+
             Ok(())
         })
         .on_window_event(|window, event| {
             log_to_file(&format!("on_window_event: label={}, event={:?}", window.label(), event));
-            // パターン2: ウィンドウの「×」ボタン押下時は非表示（タスクトレイ格納）にする
+            // ウィンドウの「×」ボタン押下時: 設定に応じてタスクトレイ格納 または 完全終了
             if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
-                log_to_file("CloseRequested prevented, window hidden");
+                if CLOSE_TO_TRAY.load(Ordering::SeqCst) {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    log_to_file("CloseRequested prevented (close_to_tray=true), window hidden");
+                } else {
+                    SHOULD_EXIT.store(true, Ordering::SeqCst);
+                    log_to_file("CloseRequested allowed (close_to_tray=false), exiting app");
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -210,6 +222,8 @@ pub fn run() {
             commands::delete_attachment,
             commands::save_attachment_as,
             commands::get_system_status,
+            commands::get_app_settings,
+            commands::update_app_settings,
             commands::shutdown_app,
         ]);
 
@@ -410,5 +424,24 @@ mod tests {
         let res = commands::upload_attachment(card.id, "huge.bin".into(), "application/octet-stream".into(), oversized_data);
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("50MB"));
+    }
+
+    // 9. アプリ設定 (×ボタン動作切替 close_to_tray) の永続化と更新検証
+    #[test]
+    fn test_app_settings_persistence() {
+        let _env = TestEnv::new();
+        // デフォルトは close_to_tray = true
+        let initial = commands::get_app_settings();
+        assert!(initial.close_to_tray);
+        assert!(CLOSE_TO_TRAY.load(Ordering::SeqCst));
+
+        // false (完全終了モード) に切り替え
+        let updated = commands::update_app_settings(false).unwrap();
+        assert!(!updated.close_to_tray);
+        assert!(!CLOSE_TO_TRAY.load(Ordering::SeqCst));
+
+        // 再読み込みしても false が永続化されていること
+        let reloaded = commands::get_app_settings();
+        assert!(!reloaded.close_to_tray);
     }
 }
