@@ -282,3 +282,25 @@ export async function shutdownServer(): Promise<void> {
     // 終了時は通信切断エラーが起きる場合があるが正常
   }
 }
+
+export async function openExternalUrl(url: string): Promise<void> {
+  // 1. First try Tauri plugin-opener
+  try {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    await openUrl(url);
+    return;
+  } catch (err) {
+    console.warn('plugin-opener failed, trying backend open_external_url command:', err);
+  }
+
+  // 2. Fallback to native Rust command
+  try {
+    await invoke('open_external_url', { url });
+    return;
+  } catch (err) {
+    console.warn('backend open_external_url command failed, falling back to window.open:', err);
+  }
+
+  // 3. Fallback to standard browser window.open (e.g. web dev mode)
+  window.open(url, '_blank', 'noopener,noreferrer');
+}

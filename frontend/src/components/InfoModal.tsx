@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, ShieldCheck, Scale, ExternalLink, Lock, Database, HardDrive } from 'lucide-react';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openExternalUrl } from '../api';
 
 interface InfoModalProps {
   isOpen: boolean;
@@ -23,12 +23,8 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleOpenExternal = async (url: string) => {
-    try {
-      await openUrl(url);
-    } catch {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+  const handleOpenExternal = (url: string) => {
+    openExternalUrl(url).catch(console.error);
   };
 
   return (

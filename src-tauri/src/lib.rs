@@ -225,6 +225,7 @@ pub fn run() {
             commands::get_app_settings,
             commands::update_app_settings,
             commands::shutdown_app,
+            commands::open_external_url,
         ]);
 
     log_to_file("building app from builder");
@@ -443,5 +444,15 @@ mod tests {
         // 再読み込みしても false が永続化されていること
         let reloaded = commands::get_app_settings();
         assert!(!reloaded.close_to_tray);
+    }
+
+    // 10. 外部URL遷移のセキュリティ検証（http/https 以外は拒絶）
+    #[test]
+    fn test_validate_external_url() {
+        assert!(commands::validate_external_url("https://github.com/zyanpoyo/LocalBan").is_ok());
+        assert!(commands::validate_external_url("http://localhost:5173").is_ok());
+        assert!(commands::validate_external_url("file:///C:/Windows/System32/cmd.exe").is_err());
+        assert!(commands::validate_external_url("javascript:alert(1)").is_err());
+        assert!(commands::validate_external_url("data:text/html,<h1>evil</h1>").is_err());
     }
 }

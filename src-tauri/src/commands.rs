@@ -1281,3 +1281,19 @@ pub fn shutdown_app(app: AppHandle) {
     crate::SHOULD_EXIT.store(true, std::sync::atomic::Ordering::SeqCst);
     app.exit(0);
 }
+
+pub fn validate_external_url(url: &str) -> Result<(), String> {
+    if !url.starts_with("https://") && !url.starts_with("http://") {
+        return Err("Only http and https URLs are allowed".to_string());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
+    validate_external_url(&url)?;
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
