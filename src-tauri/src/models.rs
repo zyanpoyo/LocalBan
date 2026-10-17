@@ -82,3 +82,30 @@ pub struct SystemStatusResponse {
 pub struct AppSettingsResponse {
     pub close_to_tray: bool,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupFileInfo {
+    pub filename: String,
+    pub path: String,
+    pub created_at: String,
+    pub size_bytes: u64,
+    pub is_safety_backup: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupManifest {
+    pub version: String,
+    pub exported_at: String,
+    pub lists_count: usize,
+    pub cards_count: usize,
+    pub attachments_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestoreResult {
+    pub success: bool,
+    pub message: String,
+    pub lists_count: usize,
+    pub cards_count: usize,
+    pub attachments_restored: usize,
+}

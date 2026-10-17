@@ -17,6 +17,7 @@ import { ArchiveModal } from './components/ArchiveModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ShortcutHelpModal } from './components/ShortcutHelpModal';
 import { InfoModal } from './components/InfoModal';
+import { BackupModal } from './components/BackupModal';
 import { Loader2, PowerOff } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -30,6 +31,7 @@ export const App: React.FC = () => {
   const [isShutdownOpen, setIsShutdownOpen] = useState(false);
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
 
   // リスト削除確認モーダル
@@ -229,6 +231,7 @@ export const App: React.FC = () => {
     isShutdownOpen ||
     isShortcutHelpOpen ||
     isInfoOpen ||
+    isBackupOpen ||
     !!deletingList;
 
   return (
@@ -239,6 +242,7 @@ export const App: React.FC = () => {
         onOpenShutdown={() => setIsShutdownOpen(true)}
         onOpenShortcutHelp={() => setIsShortcutHelpOpen(true)}
         onOpenInfo={() => setIsInfoOpen(true)}
+        onOpenBackup={() => setIsBackupOpen(true)}
         archivedCount={0}
       />
 
@@ -291,6 +295,13 @@ export const App: React.FC = () => {
       <InfoModal
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
+      />
+
+      {/* データ管理 (バックアップ & 復元) モーダル */}
+      <BackupModal
+        isOpen={isBackupOpen}
+        onClose={() => setIsBackupOpen(false)}
+        onRestored={loadData}
       />
 
       {/* リスト削除確認モーダル 【対応必須 4】 */}

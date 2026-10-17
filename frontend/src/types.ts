@@ -67,3 +67,19 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export interface AppSettings {
   close_to_tray: boolean;
 }
+
+export interface BackupFileInfo {
+  filename: string;
+  path: string;
+  created_at: string;
+  size_bytes: number;
+  is_safety_backup: boolean;
+}
+
+export interface RestoreResult {
+  success: boolean;
+  message: string;
+  lists_count: number;
+  cards_count: number;
+  attachments_restored: number;
+}

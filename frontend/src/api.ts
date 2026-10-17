@@ -1,4 +1,15 @@
-import { BoardState, Card, ListModel, Label, Checklist, ChecklistItem, Attachment, SaveStatus } from './types';
+import {
+  BoardState,
+  Card,
+  ListModel,
+  Label,
+  Checklist,
+  ChecklistItem,
+  Attachment,
+  SaveStatus,
+  BackupFileInfo,
+  RestoreResult,
+} from './types';
 import { invoke } from '@tauri-apps/api/core';
 
 // 保存状態リスナー
@@ -303,4 +314,38 @@ export async function openExternalUrl(url: string): Promise<void> {
 
   // 3. Fallback to standard browser window.open (e.g. web dev mode)
   window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+// Backup & Restore
+export async function exportBackup(): Promise<string | null> {
+  return callCommand<string | null>('export_backup');
+}
+
+export async function importBackup(): Promise<RestoreResult | null> {
+  const result = await callCommand<RestoreResult | null>('import_backup', {}, true);
+  if (result && result.success) {
+    notifySync('DATA_RESTORED');
+  }
+  return result;
+}
+
+export async function listInternalBackups(): Promise<BackupFileInfo[]> {
+  return callCommand<BackupFileInfo[]>('list_internal_backups');
+}
+
+export async function createInternalBackup(): Promise<BackupFileInfo> {
+  const result = await callCommand<BackupFileInfo>('create_internal_backup', {}, true);
+  return result;
+}
+
+export async function restoreInternalBackup(filename: string): Promise<RestoreResult> {
+  const result = await callCommand<RestoreResult>('restore_from_internal_backup', { filename }, true);
+  if (result && result.success) {
+    notifySync('DATA_RESTORED');
+  }
+  return result;
+}
+
+export async function openBackupsFolder(): Promise<void> {
+  return callCommand<void>('open_backups_folder');
 }

@@ -226,6 +226,12 @@ pub fn run() {
             commands::update_app_settings,
             commands::shutdown_app,
             commands::open_external_url,
+            commands::export_backup,
+            commands::import_backup,
+            commands::list_internal_backups,
+            commands::create_internal_backup,
+            commands::restore_from_internal_backup,
+            commands::open_backups_folder,
         ]);
 
     log_to_file("building app from builder");
@@ -454,5 +460,56 @@ mod tests {
         assert!(commands::validate_external_url("file:///C:/Windows/System32/cmd.exe").is_err());
         assert!(commands::validate_external_url("javascript:alert(1)").is_err());
         assert!(commands::validate_external_url("data:text/html,<h1>evil</h1>").is_err());
+    }
+
+    // 11. バックアップ & 復元（スナップショット作成・巻き戻し・セーフティバックアップ）の検証
+    #[test]
+    fn test_backup_and_restore_database() {
+        let _env = TestEnv::new();
+
+        // 初期状態でカードを1件追加
+        let board_initial = commands::get_board_state().unwrap();
+        let list_id = board_initial.lists[0].id.clone();
+        let new_card = commands::create_card(list_id.clone(), "バックアップ対象カード".into(), None, None).unwrap();
+
+        let board_before_backup = commands::get_board_state().unwrap();
+        let card_count_before = board_before_backup.cards.len();
+
+        // 手動スナップショットを作成
+        let snapshot = commands::create_internal_backup().unwrap();
+        assert!(snapshot.filename.starts_with("localban_manual_"));
+        assert!(snapshot.size_bytes > 0);
+
+        // スナップショット後にカードをさらに追加（データ変更）
+        let _extra_card = commands::create_card(list_id.clone(), "追加されたカード".into(), None, None).unwrap();
+        let board_modified = commands::get_board_state().unwrap();
+        assert_eq!(board_modified.cards.len(), card_count_before + 1);
+
+        // 一覧取得でスナップショットが存在することを確認
+        let backups = commands::list_internal_backups().unwrap();
+        assert!(backups.iter().any(|b| b.filename == snapshot.filename));
+
+        // スナップショットから復元
+        let restore_res = commands::restore_from_internal_backup(snapshot.filename.clone()).unwrap();
+        assert!(restore_res.success);
+        assert_eq!(restore_res.cards_count, card_count_before);
+
+        // 復元後のDB状態を確認（余分なカードが消え、スナップショット時のカード構成に戻っていること）
+        let board_after_restore = commands::get_board_state().unwrap();
+        assert_eq!(board_after_restore.cards.len(), card_count_before);
+        assert!(board_after_restore.cards.iter().any(|c| c.id == new_card.id));
+
+        // 復元直前にセーフティバックアップ (pre_restore_*.db) が自動生成されていることを確認
+        let backups_after = commands::list_internal_backups().unwrap();
+        assert!(backups_after.iter().any(|b| b.is_safety_backup));
+    }
+
+    // 12. パストラバーサル防止のセキュリティ検証
+    #[test]
+    fn test_internal_backup_path_traversal_prevention() {
+        let _env = TestEnv::new();
+        assert!(commands::restore_from_internal_backup("../evil.db".into()).is_err());
+        assert!(commands::restore_from_internal_backup("sub/evil.db".into()).is_err());
+        assert!(commands::restore_from_internal_backup("..\\evil.db".into()).is_err());
     }
 }
