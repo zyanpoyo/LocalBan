@@ -258,7 +258,13 @@ def generate_msix_assets(output_dir: Path):
     w_draw.text((138, 44), "LocalBan", fill=(255, 255, 255, 255), font=f_title)
     w_draw.text((140, 84), "Offline Kanban Board", fill=(52, 211, 153, 255), font=f_sub)
     wide.save(output_dir / "Wide310x150Logo.png", format="PNG")
-    print(f"Generated 5 MSIX visual assets in {output_dir}")
+
+    # Microsoft Store 表示用 300x300 アプリタイルアイコン
+    tile_300 = master.resize((300, 300), Image.Resampling.LANCZOS)
+    store_dir = output_dir.parent
+    tile_300.save(store_dir / "app_tile_icon_300x300.png", format="PNG")
+    tile_300.save(store_dir / "promotional" / "app_tile_icon_300x300.png", format="PNG")
+    print(f"Generated 5 MSIX visual assets + 300x300 Store App Tile Icon in {output_dir}")
 
 
 def create_screenshot_01_main_board(output_dir: Path, icon_lg: Image.Image, icon_sm: Image.Image):
@@ -272,8 +278,8 @@ def create_screenshot_01_main_board(output_dir: Path, icon_lg: Image.Image, icon
         icon_lg,
         "FEATURE 01  |  OFFLINE-FIRST KANBAN",
         "完全オフライン・超軽量。あなただけの高速カンバンボード",
-        "Tauri v2 (Full Rust) ネイティブ動作。アカウント登録不要・外部通信ゼロで瞬時に起動し、ドラッグ＆ドロップで直感整理",
-        ["◆ Full Rust 高速動作", "◆ 完全ローカル保存", "◆ カラーラベル & カバー画像"],
+        "アカウント登録不要・外部通信ゼロで瞬時に起動し、ドラッグ＆ドロップで思考とタスクを直感整理",
+        ["◆ 瞬時起動 & 軽快動作", "◆ 完全ローカル保存", "◆ カラーラベル & カバー画像"],
     )
 
     wx, wy, ww, wh = 84, 178, 1752, 852
@@ -284,75 +290,42 @@ def create_screenshot_01_main_board(output_dir: Path, icon_lg: Image.Image, icon
 
     columns = [
         {
-            "title": "ToDo（未着手）",
-            "count": "3",
+            "title": "ToDo",
+            "count": "1",
             "cards": [
                 {
-                    "labels": [("重要", (239, 68, 68)), ("設計", (99, 102, 241))],
-                    "lines": ["LocalBan へようこそ！基本操作の確認"],
-                    "due": ("10月20日 18:00", (180, 83, 9), (254, 243, 199)),
-                    "check": "2/3",
+                    "labels": [("アイデア", (16, 185, 129))],
+                    "lines": ["LocalBanへようこそ！", "基本操作を試してみましょう"],
+                    "due": None,
+                    "check": "1/3",
                     "has_desc": True,
                     "selected": True,
                 },
+            ],
+        },
+        {
+            "title": "進行中",
+            "count": "1",
+            "cards": [
                 {
-                    "labels": [("機能開発", (16, 185, 129))],
-                    "lines": ["ショートカット (c / n / 1〜9) での", "高速カード連続作成"],
+                    "labels": [("優先度: 中", (245, 158, 11))],
+                    "lines": ["ドラッグ＆ドロップで", "カードを動かす"],
                     "due": None,
-                    "check": "0/4",
+                    "check": "1/2",
                     "has_desc": True,
-                    "selected": False,
-                },
-                {
-                    "labels": [("ドキュメント", (14, 165, 233))],
-                    "lines": ["四半期タスクの整理と優先度ラベリング"],
-                    "due": ("10月25日", (100, 116, 139), (241, 245, 249)),
-                    "check": None,
-                    "has_desc": False,
                     "selected": False,
                 },
             ],
         },
         {
-            "title": "進行中 (In Progress)",
-            "count": "2",
+            "title": "完了",
+            "count": "1",
             "cards": [
                 {
-                    "cover": True,
-                    "labels": [("UI/UX", (168, 85, 247)), ("優先", (245, 158, 11))],
-                    "lines": ["カード詳細モーダルでの GFM Markdown", "・ノート記法プレビュー検証"],
-                    "due": ("今日 17:00", (180, 83, 9), (254, 243, 199)),
-                    "check": "4/5",
-                    "has_desc": True,
-                    "selected": False,
-                },
-                {
-                    "labels": [("Rust / SQLite", (16, 185, 129))],
-                    "lines": ["起動時の自動オンラインバックアップ", "（最新7世代保持）の動作確認"],
+                    "labels": [("優先度: 低", (14, 165, 233))],
+                    "lines": ["完了したタスクを整理する"],
                     "due": None,
                     "check": "2/2",
-                    "has_desc": True,
-                    "selected": False,
-                },
-            ],
-        },
-        {
-            "title": "完了 (Done)",
-            "count": "2",
-            "cards": [
-                {
-                    "labels": [("リリース準備", (16, 185, 129))],
-                    "lines": ["ネイティブ実行ファイル & MSIX パッケージ", "のビルドパイプライン構成"],
-                    "due": ("完了済み", (5, 150, 105), (209, 250, 229)),
-                    "check": "5/5",
-                    "has_desc": True,
-                    "selected": False,
-                },
-                {
-                    "labels": [("セキュリティ", (14, 165, 233))],
-                    "lines": ["完全オフライン境界（外部ネットワーク", "通信ゼロ）のセキュリティ検証完了"],
-                    "due": ("完了済み", (5, 150, 105), (209, 250, 229)),
-                    "check": "3/3",
                     "has_desc": True,
                     "selected": False,
                 },
@@ -466,7 +439,7 @@ def create_screenshot_01_main_board(output_dir: Path, icon_lg: Image.Image, icon
 
 
 def create_screenshot_02_card_detail(output_dir: Path, icon_lg: Image.Image, icon_sm: Image.Image):
-    """スクショ2: カード詳細モーダル（GFM Markdown・ノート記法・チェックリスト・画像添付）"""
+    """スクショ2: カード詳細モーダル（文字装飾・チェックリスト・画像添付）"""
     img = Image.new("RGB", (1920, 1080), (15, 23, 42))
     draw = ImageDraw.Draw(img)
 
@@ -474,10 +447,10 @@ def create_screenshot_02_card_detail(output_dir: Path, icon_lg: Image.Image, ico
         img,
         draw,
         icon_lg,
-        "FEATURE 02  |  RICH CARD DETAILS & MARKDOWN",
-        "Markdown・ノート記法・画像貼り付け・チェックリストを1枚に凝縮",
-        "見出し・表・コード・Qiita互換ノート記法（:::note）、Ctrl+V クリップボード画像貼付、進捗バー付きチェックリストに対応",
-        ["◆ GFM Markdown + :::note", "◆ Ctrl+V 画像直接貼付", "◆ 複数チェックリスト進捗バー"],
+        "FEATURE 02  |  RICH CARD DETAILS & CHECKLIST",
+        "文字装飾・チェックリスト・画像貼り付けを1枚に凝縮",
+        "見出し・箇条書き・表・強調装飾、Ctrl+V クリップボード画像貼付、進捗バー付きチェックリストに対応",
+        ["◆ リッチな文字装飾プレビュー", "◆ Ctrl+V 画像直接貼付", "◆ 進捗バー付きチェックリスト"],
     )
 
     wx, wy, ww, wh = 84, 178, 1752, 852
@@ -495,67 +468,42 @@ def create_screenshot_02_card_detail(output_dir: Path, icon_lg: Image.Image, ico
     f_mono = get_font(13)
     f_small = get_font(12, bold=True)
 
-    draw.text((mx + 36, my + 26), "リリース前チェック & アーキテクチャ仕様レビュー", fill=(15, 23, 42), font=f_h2)
+    draw.text((mx + 36, my + 26), "LocalBanへようこそ！ 基本操作を試してみましょう", fill=(15, 23, 42), font=f_h2)
     draw.text(
         (mx + 36, my + 58),
-        "リスト: 進行中 (In Progress)   |   ショートカット: [e] 説明編集  [d] 期限設定  [t] チェックリスト追加",
+        "リスト: ToDo   |   ショートカット: [e] 説明編集  [d] 期限設定  [t] チェックリスト追加",
         fill=(100, 116, 139),
         font=f_small,
     )
 
-    draw_badge_pill(draw, mx + 36, my + 88, "重要・最優先", (239, 68, 68), (255, 255, 255), f_small, pad_x=12, pad_y=4, radius=6)
-    draw_badge_pill(draw, mx + 148, my + 88, "Rust / Tauri v2", (16, 185, 129), (255, 255, 255), f_small, pad_x=12, pad_y=4, radius=6)
-    draw_badge_pill(
-        draw,
-        mx + 292,
-        my + 88,
-        "● 期限: 2026/10/20 18:00 (24時間以内)",
-        (254, 243, 199),
-        (180, 83, 9),
-        f_small,
-        pad_x=14,
-        pad_y=4,
-        radius=6,
-        border_color=(253, 230, 138),
-    )
+    draw_badge_pill(draw, mx + 36, my + 88, "アイデア", (16, 185, 129), (255, 255, 255), f_small, pad_x=14, pad_y=4, radius=6)
 
     lx = mx + 36
     ly = my + 134
     lw = 860
-    draw.text((lx, ly), "■ 説明 (GFM Markdown + ノート記法プレビュー)", fill=(30, 41, 59), font=f_sec)
+    draw.text((lx, ly), "■ 説明 (マークダウン装飾プレビュー)", fill=(30, 41, 59), font=f_sec)
     draw_badge_pill(draw, lx + lw - 150, ly - 4, "編集 [e] / Ctrl+Shift+P", (241, 245, 249), (71, 85, 105), f_small, pad_x=10, pad_y=3, radius=6)
 
-    draw.rounded_rectangle([lx, ly + 30, lx + lw, ly + 300], radius=12, fill=(248, 250, 252), outline=(226, 232, 240), width=1)
-    draw.rounded_rectangle([lx + 18, ly + 46, lx + lw - 18, ly + 128], radius=8, fill=(239, 246, 255), outline=(191, 219, 254), width=1)
-    draw.rectangle([lx + 18, ly + 46, lx + 24, ly + 128], fill=(59, 130, 246))
-    draw.text((lx + 36, ly + 56), "◆ 設計ポイント (:::note info 記法)", fill=(30, 64, 175), font=f_sec)
-    draw.text(
-        (lx + 36, ly + 84),
-        "すべてのデータは %APPDATA%\\LocalBan\\localban.db (SQLite WAL) に保存され、外部通信は一切発生しません。",
-        fill=(30, 58, 138),
-        font=f_body,
-    )
+    draw.rounded_rectangle([lx, ly + 30, lx + lw, ly + 240], radius=12, fill=(248, 250, 252), outline=(226, 232, 240), width=1)
+    draw.text((lx + 24, ly + 48), "LocalBan はローカル環境で動作するシンプルなカンバンボードです。", fill=(30, 41, 59), font=f_body)
+    draw.text((lx + 24, ly + 80), "基本操作:", fill=(15, 23, 42), font=f_sec)
+    draw.text((lx + 24, ly + 108), "・ カードをクリックすると詳細画面が開き、説明の編集やチェックリストの作成ができます", fill=(51, 65, 85), font=f_body)
+    draw.text((lx + 24, ly + 136), "・ カードをドラッグ＆ドロップして、右側の「進行中」や「完了」リストへ移動できます", fill=(51, 65, 85), font=f_body)
+    draw.text((lx + 24, ly + 164), "・ リスト下部の「+ カードを追加」から新しいカードを作成できます", fill=(51, 65, 85), font=f_body)
 
-    draw.text((lx + 22, ly + 144), "・パストラバーサル防止および UUID ファイル名による安全な添付ファイル管理", fill=(51, 65, 85), font=f_body)
-    draw.text((lx + 22, ly + 172), "・生 HTML タグの無効化による XSS インジェクション完全防止", fill=(51, 65, 85), font=f_body)
-    draw.rounded_rectangle([lx + 22, ly + 206, lx + lw - 22, ly + 282], radius=8, fill=(15, 23, 42))
-    draw.text((lx + 38, ly + 220), "$ cargo test --manifest-path src-tauri/Cargo.toml", fill=(56, 189, 248), font=f_mono)
-    draw.text((lx + 38, ly + 246), "test result: ok. 9 passed; 0 failed; finished in 0.12s", fill=(52, 211, 153), font=f_mono)
-
-    cly = ly + 320
-    draw.text((lx, cly), "■ 公開前検証チェックリスト", fill=(30, 41, 59), font=f_sec)
-    draw.text((lx + lw - 60, cly), "75%", fill=(16, 185, 129), font=f_sec)
+    cly = ly + 265
+    draw.text((lx, cly), "■ はじめてのステップ (チェックリスト)", fill=(30, 41, 59), font=f_sec)
+    draw.text((lx + lw - 100, cly), "1 / 3 (33%)", fill=(16, 185, 129), font=f_sec)
     draw.rounded_rectangle([lx, cly + 28, lx + lw, cly + 38], radius=5, fill=(226, 232, 240))
-    draw.rounded_rectangle([lx, cly + 28, lx + int(lw * 0.75), cly + 38], radius=5, fill=(16, 185, 129))
+    draw.rounded_rectangle([lx, cly + 28, lx + int(lw * 0.33), cly + 38], radius=5, fill=(16, 185, 129))
 
     items = [
-        (True, "MSIX マニフェスト (AppxManifest.xml) の Identity / Publisher 設定"),
-        (True, "ウィンドウ「×」ボタンのトレイ格納・完全終了切替トグル実装"),
-        (True, "アプリ内プライバシーポリシー・免責事項モーダル (InfoModal) の実装"),
-        (False, "Windows App Certification Kit (WACK) 最終検証の実行"),
+        (True, "このカードをクリックして詳細を開く"),
+        (False, "カードをドラッグして「進行中」へ移動する"),
+        (False, "新しいカードを自分で作成してみる"),
     ]
     for i, (done, text) in enumerate(items):
-        iy = cly + 52 + i * 38
+        iy = cly + 52 + i * 40
         box_col = (16, 185, 129) if done else (255, 255, 255)
         border_col = (16, 185, 129) if done else (148, 163, 184)
         draw.rounded_rectangle([lx + 8, iy, lx + 30, iy + 22], radius=5, fill=box_col, outline=border_col, width=2)
@@ -566,14 +514,11 @@ def create_screenshot_02_card_detail(output_dir: Path, icon_lg: Image.Image, ico
 
     rx = lx + lw + 36
     rw = 440
-    draw.text((rx, ly), "■ 添付ファイル (Ctrl+V で直接貼付可能)", fill=(30, 41, 59), font=f_sec)
-    draw.rounded_rectangle([rx, ly + 30, rx + rw, ly + 210], radius=12, fill=(248, 250, 252), outline=(203, 213, 225), width=1)
-    draw.rounded_rectangle([rx + 16, ly + 46, rx + 190, ly + 166], radius=8, fill=(15, 23, 42))
-    img.paste(icon_sm, (rx + 84, ly + 86), icon_sm)
-    draw.text((rx + 208, ly + 52), "store_architecture.png", fill=(15, 23, 42), font=f_sec)
-    draw.text((rx + 208, ly + 80), "サイズ: 142 KB  |  PNG 画像", fill=(100, 116, 139), font=f_small)
-    draw_badge_pill(draw, rx + 208, ly + 112, "★ カバー画像に設定中", (238, 242, 255), (79, 70, 229), f_small, pad_x=10, pad_y=4, radius=6)
-    draw_badge_pill(draw, rx + 208, ly + 146, "保存 / 拡大表示", (241, 245, 249), (71, 85, 105), f_small, pad_x=10, pad_y=4, radius=6)
+    draw.text((rx, ly), "■ 添付ファイル (ドラッグ＆ドロップ / Ctrl+V)", fill=(30, 41, 59), font=f_sec)
+    draw.rounded_rectangle([rx, ly + 30, rx + rw, ly + 180], radius=12, fill=(248, 250, 252), outline=(203, 213, 225), width=1)
+    draw.text((rx + 24, ly + 65), "＋ 画像やファイルをドラッグ＆ドロップ", fill=(71, 85, 105), font=f_body)
+    draw.text((rx + 24, ly + 95), "またはクリップボードから [Ctrl + V] で直接貼り付け", fill=(100, 116, 139), font=f_small)
+    draw.text((rx + 24, ly + 125), "最大 50MB までのファイルをローカル保存", fill=(148, 163, 184), font=f_small)
 
     qy = ly + 235
     draw.text((rx, qy), "■ カード操作・ショートカット", fill=(30, 41, 59), font=f_sec)
@@ -716,8 +661,8 @@ def create_screenshot_04_privacy_and_safety(output_dir: Path, icon_lg: Image.Ima
         icon_lg,
         "FEATURE 04  |  DATA SAFETY & COMPLETE PRIVACY",
         "外部通信ゼロ・2段階アーカイブ削除・日次バックアップでデータを保護",
-        "誤操作によるデータ消失を防ぐ「アーカイブ⇒完全削除」の2段階保護と、起動時のSQLiteオンラインバックアップ（7世代保持）",
-        ["◆ 誤削除を防ぐ2段階アーカイブ", "◆ 自動7世代バックアップ", "◆ 個人情報・テレメトリ収集ゼロ"],
+        "誤操作によるデータ消失を防ぐ「アーカイブ⇒完全削除」の2段階保護と、起動時の自動安全バックアップ（7世代保持）",
+        ["◆ 誤削除を防ぐ2段階アーカイブ", "◆ 自動7世代バックアップ", "◆ 個人情報・外部送信ゼロ"],
     )
 
     wx, wy, ww, wh = 84, 178, 1752, 852
@@ -737,9 +682,9 @@ def create_screenshot_04_privacy_and_safety(output_dir: Path, icon_lg: Image.Ima
     draw.line([(ax, ay + 88), (ax + aw, ay + 88)], fill=(226, 232, 240), width=1)
 
     archived_cards = [
-        ("旧デザイン案の検討メモ", "元のリスト: ToDo（未着手）", "2026/10/16 アーカイブ"),
-        ("2026年 Q3 振り返りタスクまとめ", "元のリスト: 完了 (Done)", "2026/10/15 アーカイブ"),
-        ("テスト用ダミー画像添付カード", "元のリスト: 進行中 (In Progress)", "2026/10/14 アーカイブ"),
+        ("旧デザイン案の検討メモ", "元のリスト: ToDo", "2026/10/16 アーカイブ"),
+        ("2026年 Q3 振り返りタスクまとめ", "元のリスト: 完了", "2026/10/15 アーカイブ"),
+        ("テスト用ダミー画像添付カード", "元のリスト: 進行中", "2026/10/14 アーカイブ"),
     ]
     for i, (c_title, orig_list, date_str) in enumerate(archived_cards):
         cy = ay + 110 + i * 118
@@ -776,7 +721,7 @@ def create_screenshot_04_privacy_and_safety(output_dir: Path, icon_lg: Image.Ima
     draw.rounded_rectangle([ax + 24, ay + 480, ax + aw - 24, ay + ah - 24], radius=12, fill=(236, 253, 245), outline=(167, 243, 208), width=1)
     draw.text((ax + 44, ay + 500), "◆ リスト削除時の自動カード保護機能", fill=(6, 95, 70), font=f_sec)
     draw.text((ax + 44, ay + 532), "・リスト自体を削除しても、所属カードは消去されず自動的にアーカイブへ保護退避されます。", fill=(4, 120, 87), font=f_body)
-    draw.text((ax + 44, ay + 562), "・完全削除を実行した場合のみ、SQLite レコードとディスク上の添付画像が物理削除されます。", fill=(4, 120, 87), font=f_body)
+    draw.text((ax + 44, ay + 562), "・完全削除を実行した場合のみ、データとディスク上の添付画像が物理削除されます。", fill=(4, 120, 87), font=f_body)
     draw.text((ax + 44, ay + 592), "・リアルタイム保存状態インジケーター（✓ 保存済み）により、保存完了を常時確認できます。", fill=(4, 120, 87), font=f_body)
 
     px, py, pw, ph = ax + aw + 28, body_y + 28, 812, 700
@@ -787,14 +732,14 @@ def create_screenshot_04_privacy_and_safety(output_dir: Path, icon_lg: Image.Ima
 
     pillars = [
         (
-            "1. 外部通信・テレメトリ送信ゼロ（完全オフライン完結）",
-            "Tauri v2 ネイティブ IPC によりすべての処理が PC 内で完結。アカウント登録・クラウド同期・トラッキング・広告は一切ありません。",
+            "1. 外部通信・データ送信ゼロ（完全オフライン完結）",
+            "すべての処理がお使いの PC 内だけで完結。アカウント登録・クラウド同期・トラッキング・広告は一切ありません。",
             (239, 246, 255),
             (30, 64, 175),
         ),
         (
-            "2. 起動時の日次自動オンラインバックアップ（最新7世代保持）",
-            "%APPDATA%\\LocalBan\\backups フォルダに SQLite Backup API を用いて起動時に自動バックアップを作成し、万一のトラブルにも備えます。",
+            "2. 起動時の自動バックアップ（最新7世代を自動保護）",
+            "ローカルPCの専用フォルダに起動時自動で安全なスナップショットを作成し、万一のトラブルや誤操作にも備えます。",
             (236, 253, 245),
             (6, 95, 70),
         ),
@@ -848,7 +793,7 @@ def create_store_artworks(output_dir: Path):
         h_draw,
         490,
         215,
-        "WINDOWS 11 / 10 NATIVE DESKTOP APP",
+        "WINDOWS 11 / 10 DESKTOP APP",
         (16, 185, 129),
         (255, 255, 255),
         f_tag,
@@ -860,16 +805,16 @@ def create_store_artworks(output_dir: Path):
     h_draw.text((490, 365), "軽量・オフラインファーストな個人用カンバンボード", fill=(56, 189, 248), font=f_sub)
     h_draw.text(
         (490, 420),
-        "外部通信ゼロ・ログイン不要。Tauri v2 (Full Rust) + SQLite で爆速動作するタスク管理ツール",
+        "外部通信ゼロ・ログイン不要。PCに負担をかけず超軽量・爆速動作する個人向けタスク管理ツール",
         fill=(203, 213, 225),
         font=f_desc,
     )
 
     features = [
-        ("◆ Full Rust & ネイティブ起動", "省メモリ・高速レスポンスでストレスフリー"),
-        ("◆ フルキーボード操作対応", "c / Enter / 矢印キー / ? でマウスレス操作"),
-        ("◆ GFM Markdown & ノート記法", "コード・表・:::note・Ctrl+V 画像貼付に対応"),
-        ("◆ 完全ローカル保存 & 自動保護", "2段階アーカイブ削除 + 7世代自動バックアップ"),
+        ("◆ かんばん タスク管理（個人向け）", "ドラッグ＆ドロップで思考を整理。Markdown・進捗付きチェックリスト対応"),
+        ("◆ 完全オフライン動作 & 情報収集なし", "外部通信ゼロ・広告/トラッキング一切なし。データはすべてローカルPCに安全保存"),
+        ("◆ アカウント作成不要で即座に開始", "登録やログインの手間なし。インストールして開くだけであなた専用ボードが利用可能"),
+        ("◆ 超軽量・瞬時起動の高速設計", "PCに負担をかけない省メモリ設計。キーボード完結の爆速操作に対応"),
     ]
     for i, (ft, fd) in enumerate(features):
         col = i % 2
@@ -882,97 +827,753 @@ def create_store_artworks(output_dir: Path):
 
     hero.save(output_dir / "hero_banner_1920x1080.png", format="PNG")
 
-    # 2. 1:1 Box Art (1080x1080)
-    box = Image.new("RGB", (1080, 1080), (15, 23, 42))
-    b_draw = ImageDraw.Draw(box)
-    b_draw.ellipse([-150, -150, 750, 750], fill=(30, 41, 59))
-    b_draw.rounded_rectangle([36, 36, 1044, 1044], radius=48, fill=(15, 23, 42), outline=(51, 65, 85), width=3)
+    # 2. 1:1 Box Art / Store Logo (2160x2160 & 1080x1080)
+    # 2160x2160 高解像度 Microsoft Store アプリロゴ / スクエアアート
+    box_2160 = Image.new("RGB", (2160, 2160), (15, 23, 42))
+    b2_draw = ImageDraw.Draw(box_2160)
+    b2_draw.ellipse([-300, -300, 1500, 1500], fill=(30, 41, 59))
+    b2_draw.ellipse([1100, 300, 2600, 1800], fill=(17, 34, 64))
+    b2_draw.ellipse([500, 1300, 1800, 2600], fill=(13, 30, 45))
+    b2_draw.rounded_rectangle([64, 64, 2096, 2096], radius=80, fill=(15, 23, 42), outline=(51, 65, 85), width=4)
 
-    icon_420 = master_icon.resize((420, 420), Image.Resampling.LANCZOS)
-    box.paste(icon_420, (330, 130), icon_420)
+    icon_880 = master_icon.resize((880, 880), Image.Resampling.LANCZOS)
+    box_2160.paste(icon_880, (640, 220), icon_880)
 
-    f_b_title = get_font(64, bold=True)
-    f_b_sub = get_font(26, bold=True)
-    f_b_pill = get_font(18, bold=True)
+    f_b2_title = get_font(128, bold=True)
+    f_b2_sub = get_font(48, bold=True)
+    f_b2_pill = get_font(28, bold=True)
 
-    b_draw.text((540, 610), "LocalBan", fill=(255, 255, 255), font=f_b_title, anchor="mm")
-    b_draw.text((540, 680), "オフラインファースト・個人用カンバンボード", fill=(52, 211, 153), font=f_b_sub, anchor="mm")
+    b2_draw.text((1080, 1220), "LocalBan", fill=(255, 255, 255), font=f_b2_title, anchor="mm")
+    b2_draw.text((1080, 1340), "オフラインファースト・個人用カンバンボード", fill=(52, 211, 153), font=f_b2_sub, anchor="mm")
 
-    draw_badge_pill(
-        b_draw,
-        140,
-        760,
-        "◆ Full Rust 高速動作",
-        (30, 41, 59),
-        (226, 232, 240),
-        f_b_pill,
-        pad_x=20,
-        pad_y=10,
-        radius=14,
-        border_color=(51, 65, 85),
-    )
-    draw_badge_pill(
-        b_draw,
-        445,
-        760,
-        "◆ 外部通信ゼロ",
-        (30, 41, 59),
-        (226, 232, 240),
-        f_b_pill,
-        pad_x=20,
-        pad_y=10,
-        radius=14,
-        border_color=(51, 65, 85),
-    )
-    draw_badge_pill(
-        b_draw,
-        695,
-        760,
-        "◆ Markdown対応",
-        (30, 41, 59),
-        (226, 232, 240),
-        f_b_pill,
-        pad_x=20,
-        pad_y=10,
-        radius=14,
-        border_color=(51, 65, 85),
-    )
-
-    b_draw.text((540, 910), "Windows 11 / 10 Native Desktop Client", fill=(148, 163, 184), font=get_font(18), anchor="mm")
-    box.save(output_dir / "box_art_1080x1080.png", format="PNG")
-
-    # 3. 2:3 Poster Art (720x1080)
-    poster = Image.new("RGB", (720, 1080), (15, 23, 42))
-    p_draw = ImageDraw.Draw(poster)
-    p_draw.ellipse([-120, -120, 600, 600], fill=(30, 41, 59))
-    p_draw.rounded_rectangle([28, 28, 692, 1052], radius=36, fill=(15, 23, 42), outline=(51, 65, 85), width=3)
-
-    icon_320_p = master_icon.resize((320, 320), Image.Resampling.LANCZOS)
-    poster.paste(icon_320_p, (200, 110), icon_320_p)
-
-    p_draw.text((360, 485), "LocalBan", fill=(255, 255, 255), font=get_font(54, bold=True), anchor="mm")
-    p_draw.text((360, 548), "軽量・完全オフライン カンバンボード", fill=(52, 211, 153), font=get_font(22, bold=True), anchor="mm")
-
-    p_list = [
-        "✓ 認証不要・外部通信ゼロで安心",
-        "✓ キーボード完結の高速カード操作",
-        "✓ Markdown・ノート記法・画像貼付",
-        "✓ 2段階安全削除 & 7世代自動保護",
+    pills_2160 = [
+        ("◆ 完全オフライン・外部通信ゼロ", 220, 1470),
+        ("◆ アカウント登録不要・今すぐ開始", 1110, 1470),
+        ("◆ 超軽量・瞬時起動の快適操作", 220, 1620),
+        ("◆ 直感的なかんばん & Markdown", 1110, 1620),
     ]
-    for idx, item in enumerate(p_list):
-        py = 625 + idx * 72
-        p_draw.rounded_rectangle([80, py, 640, py + 54], radius=12, fill=(30, 41, 59), outline=(51, 65, 85), width=1)
-        p_draw.text((110, py + 13), item, fill=(241, 245, 249), font=get_font(18, bold=True))
+    for p_txt, px, py in pills_2160:
+        b2_draw.rounded_rectangle([px, py, px + 830, py + 110], radius=24, fill=(30, 41, 59), outline=(51, 65, 85), width=2)
+        b2_draw.text((px + 40, py + 34), p_txt, fill=(226, 232, 240), font=f_b2_pill)
 
-    p_draw.text((360, 975), "Powered by Tauri v2 & Rust", fill=(148, 163, 184), font=get_font(16), anchor="mm")
-    poster.save(output_dir / "poster_art_720x1080.png", format="PNG")
-    print(f"Created 3 Store Artworks in {output_dir}")
+    b2_draw.text((1080, 1860), "Windows 11 / 10 専用 デスクトップ アプリケーション", fill=(148, 163, 184), font=get_font(34), anchor="mm")
+    b2_draw.text((1080, 1920), "Offline-First Personal Kanban Board", fill=(100, 116, 139), font=get_font(26), anchor="mm")
+
+    # 保存: 2160x2160
+    store_dir = output_dir.parent
+    box_2160.save(output_dir / "microsoft_store_logo_2160x2160.png", format="PNG")
+    box_2160.save(output_dir / "box_art_2160x2160.png", format="PNG")
+    box_2160.save(store_dir / "microsoft_store_logo_2160x2160.png", format="PNG")
+
+    # 1080x1080 互換リサイズ
+    box_1080 = box_2160.resize((1080, 1080), Image.Resampling.LANCZOS)
+    box_1080.save(output_dir / "box_art_1080x1080.png", format="PNG")
+
+    # クリーン版ロゴ (2160x2160)
+    clean_2160 = Image.new("RGB", (2160, 2160), (15, 23, 42))
+    c_draw = ImageDraw.Draw(clean_2160)
+    c_draw.ellipse([-200, -200, 1200, 1200], fill=(30, 41, 59))
+    c_draw.ellipse([1200, 500, 2500, 1800], fill=(17, 34, 64))
+    icon_1080 = master_icon.resize((1080, 1080), Image.Resampling.LANCZOS)
+    clean_2160.paste(icon_1080, (540, 300), icon_1080)
+    c_draw.text((1080, 1530), "LocalBan", fill=(255, 255, 255), font=get_font(150, bold=True), anchor="mm")
+    c_draw.text((1080, 1670), "Offline Kanban Board", fill=(52, 211, 153), font=get_font(52, bold=True), anchor="mm")
+    clean_2160.save(output_dir / "app_logo_clean_2160x2160.png", format="PNG")
+    clean_2160.save(store_dir / "app_logo_clean_2160x2160.png", format="PNG")
+
+    # 3. 2:3 Poster Art / Store Logo (1440x2160 & 720x1080)
+    poster_1440 = Image.new("RGB", (1440, 2160), (15, 23, 42))
+    p2_draw = ImageDraw.Draw(poster_1440)
+    p2_draw.ellipse([-240, -240, 1200, 1200], fill=(30, 41, 59))
+    p2_draw.ellipse([600, 400, 1800, 1600], fill=(17, 34, 64))
+    p2_draw.rounded_rectangle([52, 52, 1388, 2108], radius=64, fill=(15, 23, 42), outline=(51, 65, 85), width=4)
+
+    icon_640 = master_icon.resize((640, 640), Image.Resampling.LANCZOS)
+    poster_1440.paste(icon_640, (400, 220), icon_640)
+
+    p2_draw.text((720, 970), "LocalBan", fill=(255, 255, 255), font=get_font(108, bold=True), anchor="mm")
+    p2_draw.text((720, 1070), "軽量・完全オフライン カンバンボード", fill=(52, 211, 153), font=get_font(42, bold=True), anchor="mm")
+    p2_draw.text((720, 1135), "Offline-First Personal Kanban", fill=(148, 163, 184), font=get_font(28), anchor="mm")
+
+    poster_items = [
+        ("✓ 完全オフライン・外部通信ゼロ", "トラッキング一切なし。データはすべてお使いのPC内に安全保管"),
+        ("✓ アカウント登録不要・今すぐ開始", "サインアップやログイン不要。起動するだけですぐに利用可能"),
+        ("✓ 超軽量・瞬時起動の快適操作", "PCに負担をかけない軽快動作。キーボード完結の操作に対応"),
+        ("✓ 直感的なタスク整理 & ノート", "ドラッグ＆ドロップ・Markdown記法・多世代自動バックアップ"),
+    ]
+    for idx, (p_head, p_sub_txt) in enumerate(poster_items):
+        cy = 1230 + idx * 155
+        p2_draw.rounded_rectangle([110, cy, 1330, cy + 130], radius=20, fill=(30, 41, 59), outline=(51, 65, 85), width=2)
+        p2_draw.text((146, cy + 24), p_head, fill=(241, 245, 249), font=get_font(30, bold=True))
+        p2_draw.text((146, cy + 74), p_sub_txt, fill=(148, 163, 184), font=get_font(20))
+
+    p2_draw.text((720, 1960), "Windows 11 / 10 専用 デスクトップ アプリケーション", fill=(100, 116, 139), font=get_font(28), anchor="mm")
+
+    # 保存: 1440x2160
+    poster_1440.save(output_dir / "microsoft_store_logo_1440x2160.png", format="PNG")
+    poster_1440.save(output_dir / "poster_art_1440x2160.png", format="PNG")
+    poster_1440.save(store_dir / "microsoft_store_logo_1440x2160.png", format="PNG")
+
+    # 720x1080 互換リサイズ
+    poster_720 = poster_1440.resize((720, 1080), Image.Resampling.LANCZOS)
+    poster_720.save(output_dir / "poster_art_720x1080.png", format="PNG")
+    print(f"Generated Microsoft Store logos (2160x2160 & 1440x2160) and artworks in {output_dir}")
+def create_promo_features_overview(output_dir: Path, master_icon: Image.Image):
+    """プロモーション画像1: 「何ができるのか」4大コアバリュー徹底解説 (1920x1080)"""
+    img = Image.new("RGB", (1920, 1080), (15, 23, 42))
+    draw = ImageDraw.Draw(img)
+
+    # 背景アンビエントグラデーション光彩
+    draw.ellipse([-200, -200, 800, 800], fill=(30, 41, 59))
+    draw.ellipse([1100, -150, 2100, 750], fill=(17, 34, 64))
+    draw.ellipse([500, 600, 1500, 1300], fill=(13, 30, 45))
+
+    # 上部ヘッダー (y: 40〜190)
+    icon_100 = master_icon.resize((104, 104), Image.Resampling.LANCZOS)
+    img.paste(icon_100, (80, 48), icon_100)
+
+    f_tag = get_font(15, bold=True)
+    f_h1 = get_font(38, bold=True)
+    f_sub = get_font(18)
+    f_pill = get_font(14, bold=True)
+
+    draw_badge_pill(
+        draw,
+        210,
+        46,
+        "WINDOWS 11 / 10 向け 個人専用オフライン カンバンボード",
+        (16, 185, 129),
+        (255, 255, 255),
+        f_tag,
+        pad_x=16,
+        pad_y=5,
+        radius=10,
+    )
+    draw.text((210, 84), "LocalBan で「何ができるのか」 — 4つの強力なコアバリュー", fill=(255, 255, 255), font=f_h1)
+    draw.text(
+        (212, 138),
+        "外部通信ゼロ・アカウント不要・爆速起動。あなたの思考とタスクを手元だけで最速・安全に整理します。",
+        fill=(148, 163, 184),
+        font=f_sub,
+    )
+
+    # ヘッダー右側のクイックバッジ
+    top_pills = ["◆ 完全オフライン", "◆ アカウント不要", "◆ 瞬時起動 & 軽快", "◆ 個人向け"]
+    rx = 1920 - 80
+    for p_txt in reversed(top_pills):
+        bbox = draw.textbbox((0, 0), p_txt, font=f_pill)
+        pw = (bbox[2] - bbox[0]) + 30
+        rx -= pw
+        draw_badge_pill(draw, rx, 65, p_txt, (30, 41, 59), (56, 189, 248), f_pill, pad_x=14, pad_y=6, radius=10, border_color=(51, 65, 85))
+        rx -= 12
+
+    # 4つのフィーチャーカード (2x2 グリッド)
+    cards_data = [
+        {
+            "tag": "01 | かんばん タスク管理（個人向け）",
+            "tag_bg": (6, 95, 70),
+            "tag_fg": (52, 211, 153),
+            "title": "直感的なドラッグ＆ドロップでタスクを可視化",
+            "desc": "個人作業に最適化されたシンプルな3カラム構成。思考の流れを止めずにタスクを整理できます。",
+            "points": [
+                "ToDo・進行中・完了 の直感的なカンバン方式で進捗を一目で把握",
+                "進捗バー付きチェックリストで細かな作業ステップも確実に管理 (✓ 1/3)",
+                "6色のカラーラベルで優先度やカテゴリ（重要・アイデア等）を柔軟に色分け",
+                "見出し・表・箇条書きのリッチな文字装飾 ＆ [Ctrl+V] 画像直接貼付",
+            ],
+            "accent": (16, 185, 129),
+        },
+        {
+            "tag": "02 | 完全オフライン動作 & 情報収集なし",
+            "tag_bg": (30, 58, 138),
+            "tag_fg": (96, 165, 250),
+            "title": "外部通信ゼロ。機密タスクもローカルで完全保護",
+            "desc": "ネットワーク接続を一切必要とせず、すべてのデータはあなたのお手元のPC内だけに保存されます。",
+            "points": [
+                "タスク・チェックリスト・添付画像はすべてお使いのPC内に安全保存",
+                "テレメトリ・トラッキング・広告・個人情報収集は完全にゼロで安心",
+                "社内LAN・機密プロジェクト・インターネット遮断環境でも 100% 同一動作",
+                "起動時 7世代自動ローカルバックアップ＆手動スナップショットでデータ消失を防止",
+            ],
+            "accent": (59, 130, 246),
+        },
+        {
+            "tag": "03 | アカウント作成不要・ログイン不要",
+            "tag_bg": (88, 28, 135),
+            "tag_fg": (192, 132, 252),
+            "title": "面倒な登録ゼロ。インストールして1秒で作業開始",
+            "desc": "メールアドレスの登録やパスワード管理、認証メール待ちは不要。思い立ったらすぐ使えます。",
+            "points": [
+                "ユーザー登録やクラウドログインの手間なく、アプリ起動と同時に即利用可能",
+                "チーム共有の権限管理や不要な通知に煩わされず、自分のタスクに深く没頭",
+                "ワンクリックでタスクトレイ常駐・完全終了をいつでも柔軟に切替可能",
+                "完全スタンドアロンで動作するため、アカウント停止やサービス終了の心配なし",
+            ],
+            "accent": (168, 85, 247),
+        },
+        {
+            "tag": "04 | 高速起動 & PCにやさしい超軽量設計",
+            "tag_bg": (120, 53, 15),
+            "tag_fg": (251, 191, 36),
+            "title": "クリックした瞬間に起動。驚くほど軽快な動作",
+            "desc": "PCに負担をかけない超軽量設計。ストレスフリーな爆速レスポンスを実現。",
+            "points": [
+                "省メモリで常にバックグラウンド待機可能。クリックした瞬間に高速起動",
+                "マウスを使わず作業できるフルキーボード操作（c / 1〜9 / Enter / 矢印 / ?）",
+                "カードの連続作成（Enter）や保存して詳細展開（Shift+Enter）で思考速度を維持",
+                "日本語入力の変換状態を自動検知する IME ガード完備で、誤作動を完全に防止",
+            ],
+            "accent": (245, 158, 11),
+        },
+    ]
+
+    card_w = 850
+    card_h = 390
+    f_card_tag = get_font(13, bold=True)
+    f_card_title = get_font(21, bold=True)
+    f_card_sub = get_font(14)
+    f_point = get_font(14)
+
+    for i, c in enumerate(cards_data):
+        col = i % 2
+        row = i // 2
+        cx = 80 + col * 910
+        cy = 200 + row * 420
+
+        # カード外枠
+        draw.rounded_rectangle(
+            [cx, cy, cx + card_w, cy + card_h],
+            radius=18,
+            fill=(30, 41, 59),
+            outline=(51, 65, 85),
+            width=2,
+        )
+
+        # 上部アクセントライン
+        draw.rounded_rectangle([cx + 24, cy + 2, cx + card_w - 24, cy + 5], radius=2, fill=c["accent"])
+
+        # タグ
+        draw_badge_pill(draw, cx + 28, cy + 24, c["tag"], c["tag_bg"], c["tag_fg"], f_card_tag, pad_x=12, pad_y=4, radius=8)
+
+        # 見出し & 概要
+        draw.text((cx + 28, cy + 62), c["title"], fill=(255, 255, 255), font=f_card_title)
+        draw.text((cx + 28, cy + 96), c["desc"], fill=(148, 163, 184), font=f_card_sub)
+
+        # 区切り線
+        draw.line([(cx + 28, cy + 126), (cx + card_w - 28, cy + 126)], fill=(51, 65, 85), width=1)
+
+        # ポイント 4 項目
+        for p_idx, pt in enumerate(c["points"]):
+            py = cy + 144 + p_idx * 54
+            draw.rounded_rectangle([cx + 28, py, cx + card_w - 28, py + 44], radius=8, fill=(15, 23, 42), outline=(30, 41, 59), width=1)
+            # 先頭チェックアイコン風マーク
+            draw.text((cx + 42, py + 12), "✓", fill=c["accent"], font=get_font(14, bold=True))
+            draw.text((cx + 66, py + 12), pt, fill=(226, 232, 240), font=f_point)
+
+    out_path = output_dir / "promo_features_overview_1920x1080.png"
+    img.save(out_path, format="PNG")
+    print(f"Created {out_path}")
+
+
+def create_promo_showcase(output_dir: Path, master_icon: Image.Image, icon_sm: Image.Image):
+    """プロモーション画像2: 実際のカンバンUIモックアップ ＋ 4大セールスポイント (1920x1080)"""
+    img = Image.new("RGB", (1920, 1080), (15, 23, 42))
+    draw = ImageDraw.Draw(img)
+
+    draw.ellipse([-200, -200, 800, 800], fill=(30, 41, 59))
+    draw.ellipse([1100, -150, 2100, 750], fill=(17, 34, 64))
+
+    # 左側: 4大強みとキャッチコピー (幅 720px)
+    icon_96 = master_icon.resize((96, 96), Image.Resampling.LANCZOS)
+    img.paste(icon_96, (70, 70), icon_96)
+
+    f_title = get_font(56, bold=True)
+    f_sub = get_font(24, bold=True)
+    f_badge = get_font(14, bold=True)
+    f_desc = get_font(17)
+
+    draw_badge_pill(draw, 185, 75, "WINDOWS 11 / 10 DESKTOP APP", (16, 185, 129), (255, 255, 255), f_badge, pad_x=14, pad_y=4, radius=8)
+    draw.text((185, 110), "LocalBan", fill=(255, 255, 255), font=f_title)
+    draw.text((70, 190), "個人作業を最速化する、オフライン・カンバン", fill=(56, 189, 248), font=f_sub)
+    draw.text(
+        (70, 232),
+        "外部通信ゼロ・アカウント不要。起動したその瞬間から、\nあなただけのタスク管理が始まります。",
+        fill=(203, 213, 225),
+        font=f_desc,
+    )
+
+    pillars = [
+        (
+            "1. かんばん タスク管理（個人向け）",
+            "ドラッグ＆ドロップで思考を整理。ToDo・進行中・完了をスムーズに可視化。進捗付きチェックリスト・Markdown対応。",
+            (16, 185, 129),
+        ),
+        (
+            "2. 完全オフライン動作 & 情報収集なし",
+            "外部通信ゼロ・広告/トラッキング一切なし。タスクデータはお手元のPC内だけに安全保存。",
+            (59, 130, 246),
+        ),
+        (
+            "3. アカウント作成不要・すぐ使える",
+            "面倒な会員登録やログインの手間は一切不要。アプリを立ち上げれば1秒であなた専用ボードが開きます。",
+            (168, 85, 247),
+        ),
+        (
+            "4. 超軽量・一瞬で立ち上がる高速起動",
+            "PCに負担をかけず爆速レスポンス。フルキーボード操作対応（c / 1〜9 / Enter / ?）でマウスレスの高速入力を実現。",
+            (245, 158, 11),
+        ),
+    ]
+
+    for idx, (p_t, p_d, p_col) in enumerate(pillars):
+        py = 315 + idx * 175
+        draw.rounded_rectangle([70, py, 720, py + 155], radius=16, fill=(30, 41, 59), outline=(51, 65, 85), width=2)
+        draw.rounded_rectangle([70, py + 18, 76, py + 137], radius=3, fill=p_col)
+        draw.text((96, py + 22), p_t, fill=(255, 255, 255), font=get_font(20, bold=True))
+        draw.text((96, py + 60), p_d[:34], fill=(203, 213, 225), font=get_font(14))
+        if len(p_d) > 34:
+            draw.text((96, py + 86), p_d[34:68], fill=(203, 213, 225), font=get_font(14))
+        if len(p_d) > 68:
+            draw.text((96, py + 112), p_d[68:], fill=(148, 163, 184), font=get_font(13))
+
+    # 右側: 実際のカンバンボード ウィンドウモックアップ (x: 770, y: 70, 幅 1080, 高さ 940)
+    wx, wy, ww, wh = 770, 70, 1080, 940
+    # 外周ドロップシャドウ風ボーダー
+    draw.rounded_rectangle([wx - 4, wy - 4, wx + ww + 4, wy + wh + 4], radius=20, fill=(51, 65, 85))
+    draw.rounded_rectangle([wx, wy, wx + ww, wy + wh], radius=18, fill=(241, 245, 249))
+
+    # タイトルバー
+    draw.rounded_rectangle([wx, wy, wx + ww, wy + 38], radius=18, fill=(241, 245, 249))
+    draw.rectangle([wx, wy + 20, wx + ww, wy + 38], fill=(241, 245, 249))
+    draw.text((wx + 18, wy + 10), "LocalBan - [個人専用オフラインボード]", fill=(71, 85, 105), font=get_font(12))
+    draw.text((wx + ww - 95, wy + 9), "─   □   ×", fill=(100, 116, 139), font=get_font(12))
+
+    # ヘッダーバー
+    hy = wy + 38
+    draw.rectangle([wx, hy, wx + ww, hy + 54], fill=(255, 255, 255))
+    draw.line([(wx, hy + 54), (wx + ww, hy + 54)], fill=(226, 232, 240), width=1)
+    img.paste(icon_sm, (wx + 18, hy + 11), icon_sm)
+    draw.text((wx + 56, hy + 14), "LocalBan", fill=(15, 23, 42), font=get_font(18, bold=True))
+    draw_badge_pill(draw, wx + 150, hy + 15, "v2.1.0", (236, 253, 245), (4, 120, 87), get_font(11, bold=True), pad_x=8, pad_y=3, radius=6)
+    draw_badge_pill(draw, wx + 210, hy + 15, "オフライン", (241, 245, 249), (100, 116, 139), get_font(11, bold=True), pad_x=10, pad_y=3, radius=10)
+    draw_badge_pill(draw, wx + 310, hy + 14, "✓ 保存済み", (236, 253, 245), (5, 150, 105), get_font(12, bold=True), pad_x=12, pad_y=4, radius=10)
+
+    # 3カラム描画
+    m_cols = [
+        ("ToDo", "1", [
+            ("アイデア", (16, 185, 129)),
+            "LocalBanへようこそ！ 基本操作を試す",
+            "✓ 1/3 (クリックして詳細展開)",
+            True,
+        ]),
+        ("進行中", "1", [
+            ("優先度: 中", (245, 158, 11)),
+            "ドラッグ＆ドロップでカードを動かす",
+            "✓ 1/2 (上下・左右にスムーズ移動)",
+            False,
+        ]),
+        ("完了", "1", [
+            ("優先度: 低", (14, 165, 233)),
+            "完了したタスクを整理する",
+            "✓ 2/2 (アーカイブで常時すっきり)",
+            False,
+        ]),
+    ]
+    mc_w = 328
+    mc_gap = 18
+    mc_start_x = wx + 22
+    mc_y = hy + 72
+    mc_h = 745
+
+    for c_i, (c_title, c_cnt, c_data) in enumerate(m_cols):
+        ccx = mc_start_x + c_i * (mc_w + mc_gap)
+        draw.rounded_rectangle([ccx, mc_y, ccx + mc_w, mc_y + mc_h], radius=14, fill=(226, 232, 240), outline=(203, 213, 225), width=1)
+        draw.text((ccx + 16, mc_y + 14), c_title, fill=(30, 41, 59), font=get_font(16, bold=True))
+        draw_badge_pill(draw, ccx + mc_w - 50, mc_y + 12, c_cnt, (203, 213, 225), (51, 65, 85), get_font(11, bold=True), pad_x=8, pad_y=2, radius=8)
+
+        # カード
+        k_y = mc_y + 52
+        k_h = 160
+        (lbl_t, lbl_c), card_t, check_t, is_sel = c_data
+        b_c = (79, 70, 229) if is_sel else (203, 213, 225)
+        b_w = 2 if is_sel else 1
+        draw.rounded_rectangle([ccx + 10, k_y, ccx + mc_w - 10, k_y + k_h], radius=10, fill=(255, 255, 255), outline=b_c, width=b_w)
+
+        draw_badge_pill(draw, ccx + 20, k_y + 14, lbl_t, lbl_c, (255, 255, 255), get_font(11, bold=True), pad_x=8, pad_y=2, radius=6)
+        draw.text((ccx + 20, k_y + 44), card_t[:17], fill=(15, 23, 42), font=get_font(14, bold=True))
+        if len(card_t) > 17:
+            draw.text((ccx + 20, k_y + 68), card_t[17:], fill=(15, 23, 42), font=get_font(14, bold=True))
+
+        my = k_y + k_h - 32
+        draw_badge_pill(draw, ccx + 20, my, check_t, (241, 245, 249), (5, 150, 105), get_font(11, bold=True), pad_x=8, pad_y=2, radius=6)
+
+        draw.text((ccx + 16, mc_y + mc_h - 36), "＋ カードを追加 (c / 1〜3)", fill=(100, 116, 139), font=get_font(12))
+
+    out_path = output_dir / "promo_showcase_1920x1080.png"
+    img.save(out_path, format="PNG")
+    print(f"Created {out_path}")
+
+
+def draw_clean_base_board(img: Image.Image, draw: ImageDraw.ImageDraw, icon_sm: Image.Image):
+    """1920x1080 フル画面の純粋な LocalBan メインボード描画（初回起動初期カード）"""
+    # 1. Windows タイトルバー (0〜38)
+    draw.rectangle([0, 0, 1920, 38], fill=(241, 245, 249))
+    font_win = get_font(12)
+    draw.text((18, 10), "LocalBan", fill=(71, 85, 105), font=font_win)
+    draw.text((1920 - 110, 9), "─     □     ×", fill=(100, 116, 139), font=font_win)
+
+    # 2. アプリヘッダー (38〜96)
+    draw.rectangle([0, 38, 1920, 96], fill=(255, 255, 255))
+    draw.line([(0, 96), (1920, 96)], fill=(226, 232, 240), width=1)
+
+    img.paste(icon_sm, (22, 51), icon_sm)
+    font_logo = get_font(21, bold=True)
+    font_badge = get_font(12, bold=True)
+    font_btn = get_font(13, bold=True)
+
+    draw.text((64, 53), "LocalBan", fill=(15, 23, 42), font=font_logo)
+    draw_badge_pill(draw, 172, 56, "v2.1.0", (236, 253, 245), (4, 120, 87), font_badge, pad_x=10, pad_y=4, radius=8, border_color=(167, 243, 208))
+    draw_badge_pill(draw, 240, 56, "オフライン", (241, 245, 249), (100, 116, 139), font_badge, pad_x=12, pad_y=4, radius=12)
+
+    cx = 1920 // 2 - 55
+    draw_badge_pill(draw, cx, 54, "✓ 保存済み", (236, 253, 245), (5, 150, 105), font_btn, pad_x=14, pad_y=5, radius=14, border_color=(167, 243, 208))
+
+    rx = 1920 - 640
+    draw_badge_pill(draw, rx - 100, 53, "バックアップ", (241, 245, 249), (71, 85, 105), font_badge, pad_x=12, pad_y=6, radius=8)
+    draw_badge_pill(draw, rx, 53, "×: トレイ格納", (238, 242, 255), (67, 56, 202), font_badge, pad_x=12, pad_y=6, radius=8, border_color=(199, 210, 254))
+    draw_badge_pill(draw, rx + 122, 53, "ショートカット [?]", (241, 245, 249), (71, 85, 105), font_badge, pad_x=12, pad_y=6, radius=8)
+    draw_badge_pill(draw, rx + 272, 53, "規約・免責", (241, 245, 249), (71, 85, 105), font_badge, pad_x=12, pad_y=6, radius=8)
+    draw_badge_pill(draw, rx + 372, 53, "アーカイブ", (241, 245, 249), (51, 65, 85), font_badge, pad_x=12, pad_y=6, radius=8)
+    draw_badge_pill(draw, rx + 468, 53, "終了", (255, 241, 242), (190, 18, 60), font_badge, pad_x=12, pad_y=6, radius=8, border_color=(254, 205, 211))
+
+    # 3. ボードエリア (96〜1080)
+    draw.rectangle([0, 97, 1920, 1080], fill=(241, 245, 249))
+
+    columns = [
+        {
+            "title": "ToDo",
+            "count": "1",
+            "cards": [
+                {
+                    "labels": [("アイデア", (16, 185, 129))],
+                    "lines": ["LocalBanへようこそ！ 基本操作を試してみましょう"],
+                    "desc_preview": "LocalBan はローカル環境で動作するシンプルなカンバンボードです。カードをクリックして詳細を開き、ドラッグ＆ドロップで移動できます。",
+                    "check": "1/3",
+                    "selected": True,
+                },
+            ],
+        },
+        {
+            "title": "進行中",
+            "count": "1",
+            "cards": [
+                {
+                    "labels": [("優先度: 中", (245, 158, 11))],
+                    "lines": ["ドラッグ＆ドロップでカードを動かす"],
+                    "desc_preview": "作業中のタスクは「進行中」リストに配置します。上下にドラッグして並び順変更、横にドラッグしてリスト間移動ができます。",
+                    "check": "1/2",
+                    "selected": False,
+                },
+            ],
+        },
+        {
+            "title": "完了",
+            "count": "1",
+            "cards": [
+                {
+                    "labels": [("優先度: 低", (14, 165, 233))],
+                    "lines": ["完了したタスクを整理する"],
+                    "desc_preview": "終わったタスクは「完了」リストに移動して管理します。不要になったらアーカイブしてボードをすっきり整理できます。",
+                    "check": "2/2",
+                    "selected": False,
+                },
+            ],
+        },
+    ]
+
+    f_col_title = get_font(18, bold=True)
+    f_card_title = get_font(16, bold=True)
+    f_card_desc = get_font(13)
+    f_small = get_font(13, bold=True)
+    f_meta = get_font(13)
+
+    col_w = 440
+    col_gap = 24
+    start_x = 36
+    col_y = 126
+    ch = 920
+
+    for idx, col in enumerate(columns):
+        cx = start_x + idx * (col_w + col_gap)
+        draw.rounded_rectangle([cx, col_y, cx + col_w, col_y + ch], radius=16, fill=(226, 232, 240), outline=(203, 213, 225), width=1)
+        draw.text((cx + 20, col_y + 18), col["title"], fill=(30, 41, 59), font=f_col_title)
+        draw_badge_pill(draw, cx + col_w - 65, col_y + 16, col["count"], (203, 213, 225), (51, 65, 85), f_small, pad_x=10, pad_y=3, radius=10)
+
+        cy = col_y + 64
+        for card in col["cards"]:
+            card_h = 175
+            border_c = (79, 70, 229) if card["selected"] else (203, 213, 225)
+            border_w = 2 if card["selected"] else 1
+
+            draw.rounded_rectangle([cx + 14, cy, cx + col_w - 14, cy + card_h], radius=12, fill=(255, 255, 255), outline=border_c, width=border_w)
+
+            lx = cx + 28
+            for l_name, l_col in card["labels"]:
+                w_pill, _ = draw_badge_pill(draw, lx, cy + 16, l_name, l_col, (255, 255, 255), f_small, pad_x=10, pad_y=3, radius=6)
+                lx += w_pill + 8
+
+            for l_idx, line_str in enumerate(card["lines"]):
+                draw.text((cx + 28, cy + 48 + l_idx * 24), line_str, fill=(15, 23, 42), font=f_card_title)
+
+            if "desc_preview" in card:
+                p_text = card["desc_preview"]
+                draw.text((cx + 28, cy + 80), p_text[:28], fill=(100, 116, 139), font=f_card_desc)
+                draw.text((cx + 28, cy + 102), p_text[28:56], fill=(100, 116, 139), font=f_card_desc)
+
+            my = cy + card_h - 36
+            mx = cx + 28
+            if card["check"]:
+                is_done = card["check"] == "2/2"
+                c_bg = (209, 250, 229) if is_done else (241, 245, 249)
+                c_fg = (5, 150, 105) if is_done else (71, 85, 105)
+                pw, _ = draw_badge_pill(draw, mx, my, f"✓ {card['check']}", c_bg, c_fg, f_small, pad_x=9, pad_y=3, radius=6)
+                mx += pw + 12
+
+            draw.text((mx, my + 3), "≡ Markdown説明", fill=(100, 116, 139), font=f_meta)
+
+            cy += card_h + 16
+
+        draw.text((cx + 22, col_y + ch - 44), "＋ カードを追加  (ショートカット: c / 1〜3)", fill=(100, 116, 139), font=f_meta)
+
+    add_x = start_x + 3 * (col_w + col_gap)
+    draw.rounded_rectangle([add_x, col_y, add_x + 380, col_y + 60], radius=16, fill=(255, 255, 255), outline=(203, 213, 225), width=1)
+    draw.text((add_x + 24, col_y + 19), "＋ もう1つリストを追加", fill=(71, 85, 105), font=f_col_title)
+
+
+def create_clean_screenshots(output_dir: Path, icon_sm: Image.Image):
+    """Windows ストア申請要件（1366x768以上）を満たす純粋な 1920x1080 実画面スクリーンショット 4枚"""
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. メインボード純粋画面 (1920x1080)
+    img1 = Image.new("RGB", (1920, 1080), (241, 245, 249))
+    draw1 = ImageDraw.Draw(img1)
+    draw_clean_base_board(img1, draw1, icon_sm)
+    out1 = output_dir / "01_main_board_1920x1080.png"
+    img1.save(out1, format="PNG")
+    print(f"Created clean screenshot: {out1}")
+
+    # 2. 初期カード詳細モーダル純粋画面 (1920x1080)
+    img2 = Image.new("RGB", (1920, 1080), (241, 245, 249))
+    draw2 = ImageDraw.Draw(img2)
+    draw_clean_base_board(img2, draw2, icon_sm)
+
+    # モーダル背景オーバーレイ
+    overlay = Image.new("RGBA", (1920, 1080), (15, 23, 42, 110))
+    img2.paste(overlay, (0, 0), overlay)
+    draw2 = ImageDraw.Draw(img2)
+
+    mx, my, mw, mh = 220, 120, 1480, 840
+    draw2.rounded_rectangle([mx, my, mx + mw, my + mh], radius=18, fill=(255, 255, 255), outline=(226, 232, 240), width=2)
+
+    f_h2 = get_font(24, bold=True)
+    f_sec = get_font(16, bold=True)
+    f_body = get_font(15)
+    f_small = get_font(13, bold=True)
+
+    draw2.text((mx + 42, my + 32), "LocalBanへようこそ！ 基本操作を試してみましょう", fill=(15, 23, 42), font=f_h2)
+    draw2.text(
+        (mx + 42, my + 68),
+        "リスト: ToDo   |   ショートカット: [e] 説明編集  [d] 期限設定  [t] チェックリスト追加",
+        fill=(100, 116, 139),
+        font=f_small,
+    )
+
+    draw_badge_pill(draw2, mx + 42, my + 102, "アイデア", (16, 185, 129), (255, 255, 255), f_small, pad_x=16, pad_y=5, radius=8)
+
+    lx = mx + 42
+    ly = my + 154
+    lw = 900
+    draw2.text((lx, ly), "■ 説明 (マークダウン装飾プレビュー)", fill=(30, 41, 59), font=f_sec)
+    draw_badge_pill(draw2, lx + lw - 160, ly - 4, "編集 [e] / Ctrl+Shift+P", (241, 245, 249), (71, 85, 105), f_small, pad_x=10, pad_y=3, radius=6)
+
+    draw2.rounded_rectangle([lx, ly + 32, lx + lw, ly + 310], radius=12, fill=(248, 250, 252), outline=(226, 232, 240), width=1)
+    draw2.text((lx + 28, ly + 56), "LocalBan はローカル環境で動作するシンプルなカンバンボードです。", fill=(30, 41, 59), font=f_body)
+    draw2.text((lx + 28, ly + 94), "基本操作:", fill=(15, 23, 42), font=f_sec)
+    draw2.text((lx + 28, ly + 128), "・ カードをクリックすると詳細画面が開き、説明の編集やチェックリストの作成ができます", fill=(51, 65, 85), font=f_body)
+    draw2.text((lx + 28, ly + 162), "・ カードをドラッグ＆ドロップして、右側の「進行中」や「完了」リストへ移動できます", fill=(51, 65, 85), font=f_body)
+    draw2.text((lx + 28, ly + 196), "・ リスト下部の「+ カードを追加」から新しいカードを作成できます", fill=(51, 65, 85), font=f_body)
+
+    cly = ly + 340
+    draw2.text((lx, cly), "■ はじめてのステップ (チェックリスト)", fill=(30, 41, 59), font=f_sec)
+    draw2.text((lx + lw - 110, cly), "1 / 3 (33%)", fill=(16, 185, 129), font=f_sec)
+    draw2.rounded_rectangle([lx, cly + 30, lx + lw, cly + 42], radius=6, fill=(226, 232, 240))
+    draw2.rounded_rectangle([lx, cly + 30, lx + int(lw * 0.33), cly + 42], radius=6, fill=(16, 185, 129))
+
+    items = [
+        (True, "このカードをクリックして詳細を開く"),
+        (False, "カードをドラッグして「進行中」へ移動する"),
+        (False, "新しいカードを自分で作成してみる"),
+    ]
+    for i, (done, text) in enumerate(items):
+        iy = cly + 60 + i * 46
+        box_col = (16, 185, 129) if done else (255, 255, 255)
+        border_col = (16, 185, 129) if done else (148, 163, 184)
+        draw2.rounded_rectangle([lx + 8, iy, lx + 34, iy + 26], radius=6, fill=box_col, outline=border_col, width=2)
+        if done:
+            draw2.text((lx + 13, iy - 1), "✓", fill=(255, 255, 255), font=f_small)
+        txt_col = (148, 163, 184) if done else (30, 41, 59)
+        draw2.text((lx + 48, iy + 2), text, fill=txt_col, font=f_body)
+
+    rx = lx + lw + 42
+    rw = 450
+    draw2.text((rx, ly), "■ 添付ファイル (ドラッグ＆ドロップ / Ctrl+V)", fill=(30, 41, 59), font=f_sec)
+    draw2.rounded_rectangle([rx, ly + 32, rx + rw, ly + 210], radius=12, fill=(248, 250, 252), outline=(203, 213, 225), width=1)
+    draw2.text((rx + 28, ly + 72), "＋ 画像やファイルをドラッグ＆ドロップ", fill=(71, 85, 105), font=f_body)
+    draw2.text((rx + 28, ly + 104), "またはクリップボードから [Ctrl + V] で直接貼り付け", fill=(100, 116, 139), font=f_small)
+    draw2.text((rx + 28, ly + 136), "最大 50MB までのファイルをローカル保存", fill=(148, 163, 184), font=f_small)
+
+    qy = ly + 265
+    draw2.text((rx, qy), "■ カード操作・ショートカット", fill=(30, 41, 59), font=f_sec)
+    actions = [
+        ("▶ ラベルを編集", "6色のカラーラベルを割り当て"),
+        ("▶ 期限 (Due Date) 設定 [d]", "日時ピッカーと4色ステータスバッジ"),
+        ("▶ カードを複製 [c]", "チェックリスト・添付画像も丸ごと複製"),
+        ("▶ アーカイブへ送る [a]", "誤削除を防ぐ2段階安全アーカイブ"),
+    ]
+    for idx, (act_t, act_sub) in enumerate(actions):
+        ay = qy + 36 + idx * 68
+        draw2.rounded_rectangle([rx, ay, rx + rw, ay + 56], radius=10, fill=(248, 250, 252), outline=(226, 232, 240), width=1)
+        draw2.text((rx + 18, ay + 8), act_t, fill=(30, 41, 59), font=f_sec)
+        draw2.text((rx + 18, ay + 32), act_sub, fill=(100, 116, 139), font=f_small)
+
+    out2 = output_dir / "02_card_detail_1920x1080.png"
+    img2.save(out2, format="PNG")
+    print(f"Created clean screenshot: {out2}")
+
+    # 3. ショートカットモーダル純粋画面 (1920x1080)
+    img3 = Image.new("RGB", (1920, 1080), (241, 245, 249))
+    draw3 = ImageDraw.Draw(img3)
+    draw_clean_base_board(img3, draw3, icon_sm)
+    img3.paste(overlay, (0, 0), overlay)
+    draw3 = ImageDraw.Draw(img3)
+
+    sx, sy, sw, sh = 280, 140, 1360, 800
+    draw3.rounded_rectangle([sx, sy, sx + sw, sy + sh], radius=18, fill=(255, 255, 255), outline=(226, 232, 240), width=2)
+    draw3.text((sx + 42, sy + 30), "■ キーボードショートカット一覧", fill=(15, 23, 42), font=f_h2)
+    draw3.text((sx + 42, sy + 66), "すべてのショートカットは日本語入力（IME変換中）を自動検知し、誤動作を防止します。", fill=(100, 116, 139), font=f_body)
+    draw3.line([(sx, sy + 100), (sx + sw, sy + 100)], fill=(226, 232, 240), width=1)
+
+    sections = [
+        (
+            "◆ ボード・カード作成操作",
+            [
+                ("c / n", "選択中（または先頭）のリストでカード作成を開始"),
+                ("1 〜 9", "左から N 番目のリストで直接カード作成を開始"),
+                ("Enter", "カードを保存し、続けて次のカードを連続作成"),
+                ("Ctrl + Enter", "カードを保存して入力フォームを閉じる"),
+                ("Shift + Enter", "カードを保存し、そのままカード詳細モーダルを開く"),
+            ],
+        ),
+        (
+            "◆ ボード内ナビゲーション",
+            [
+                ("↑ / ↓", "同一リスト内のカード選択フォーカスを上下に移動"),
+                ("← / →", "隣接する左右のリストへ選択フォーカスを移動"),
+                ("Enter / Space", "現在フォーカス中のカード詳細モーダルを開く"),
+                ("?", "キーボードショートカット一覧モーダルを開閉"),
+                ("Esc", "開いているモーダルや入力フォームを閉じる"),
+            ],
+        ),
+        (
+            "◆ カード詳細モーダル内操作",
+            [
+                ("e", "説明文（Markdown）の編集を開始"),
+                ("Ctrl + Shift + P", "Markdown 編集 ⇄ プレビューをトグル切替"),
+                ("Ctrl + Enter", "説明文の変更を保存"),
+                ("d", "期限（Due Date）入力にフォーカス"),
+                ("t / -", "チェックリストの新規作成を開始"),
+                ("c / a", "カードを複製 / アーカイブへ移動"),
+            ],
+        ),
+    ]
+
+    sec_w = 400
+    for col_i, (sec_title, sec_items) in enumerate(sections):
+        s_cx = sx + 42 + col_i * (sec_w + 35)
+        s_cy = sy + 125
+        draw3.text((s_cx, s_cy), sec_title, fill=(30, 64, 175), font=f_sec)
+        draw3.line([(s_cx, s_cy + 28), (s_cx + sec_w, s_cy + 28)], fill=(191, 219, 254), width=2)
+
+        for item_i, (kbd_str, desc_str) in enumerate(sec_items):
+            iy = s_cy + 42 + item_i * 68
+            draw3.rounded_rectangle([s_cx, iy, s_cx + sec_w, iy + 58], radius=10, fill=(248, 250, 252), outline=(226, 232, 240), width=1)
+            draw_badge_pill(draw3, s_cx + 12, iy + 14, kbd_str, (255, 255, 255), (15, 23, 42), get_font(13, bold=True), pad_x=10, pad_y=4, radius=6, border_color=(203, 213, 225))
+            draw3.text((s_cx + 130, iy + 12), desc_str[:17], fill=(51, 65, 85), font=get_font(13))
+            if len(desc_str) > 17:
+                draw3.text((s_cx + 130, iy + 32), desc_str[17:], fill=(51, 65, 85), font=get_font(13))
+
+    out3 = output_dir / "03_keyboard_shortcuts_1920x1080.png"
+    img3.save(out3, format="PNG")
+    print(f"Created clean screenshot: {out3}")
+
+    # 4. 安全性・自動バックアップ純粋画面 (1920x1080)
+    img4 = Image.new("RGB", (1920, 1080), (241, 245, 249))
+    draw4 = ImageDraw.Draw(img4)
+    draw_clean_base_board(img4, draw4, icon_sm)
+    img4.paste(overlay, (0, 0), overlay)
+    draw4 = ImageDraw.Draw(img4)
+
+    px, py, pw, ph = 260, 130, 1400, 820
+    draw4.rounded_rectangle([px, py, px + pw, py + ph], radius=18, fill=(255, 255, 255), outline=(226, 232, 240), width=2)
+    draw4.text((px + 44, py + 30), "■ バックアップ & 完全ローカルデータ保護", fill=(15, 23, 42), font=f_h2)
+    draw4.text((px + 44, py + 66), "LocalBan は完全オフライン。外部通信は一切行わず、大切なタスクデータを自動保護します。", fill=(100, 116, 139), font=f_body)
+    draw4.line([(px, py + 100), (px + pw, py + 100)], fill=(226, 232, 240), width=1)
+
+    pillars = [
+        (
+            "1. 完全オフライン & お手元のPC内だけに安全保存",
+            "タスク・チェックリスト・添付画像はすべてお使いのPC内にのみ安全保存されます。外部サーバーへの通信は一切行われません。",
+            (239, 246, 255),
+            (30, 64, 175),
+        ),
+        (
+            "2. 起動時 自動バックアップ（直近7世代をローカル保持）",
+            "アプリ起動時にデータを安全にスナップショット保存。いつでも過去の世代へロールバック可能。誤操作やデータ消失から保護します。",
+            (236, 253, 245),
+            (4, 120, 87),
+        ),
+        (
+            "3. タスクトレイ常駐 & 選べる「×」ボタン動作（トレイ格納 / 完全終了）",
+            "ヘッダーの「×: トレイ格納 / 完全終了」ボタンから閉じる動作をワンクリックで切替可能。単一インスタンス制御で多重起動も防止。",
+            (245, 243, 255),
+            (91, 33, 182),
+        ),
+        (
+            "4. アプリ内からいつでも確認できるプライバシーポリシー・免責事項",
+            "ヘッダーの「規約・免責」ボタンから、オフライン状態でもプライバシーポリシー全文・ライセンス・免責事項をいつでも確認できます。",
+            (248, 250, 252),
+            (51, 65, 85),
+        ),
+    ]
+    for idx, (p_title, p_desc, bg_c, fg_c) in enumerate(pillars):
+        by = py + 120 + idx * 160
+        draw4.rounded_rectangle([px + 36, by, px + pw - 36, by + 138], radius=14, fill=bg_c)
+        draw4.text((px + 60, by + 22), p_title, fill=fg_c, font=f_sec)
+        draw4.text((px + 60, by + 60), p_desc[:52], fill=(51, 65, 85), font=f_body)
+        if len(p_desc) > 52:
+            draw4.text((px + 60, by + 90), p_desc[52:], fill=(51, 65, 85), font=f_body)
+
+    out4 = output_dir / "04_privacy_and_safety_1920x1080.png"
+    img4.save(out4, format="PNG")
+    print(f"Created clean screenshot: {out4}")
 
 
 if __name__ == "__main__":
     msix_dir = root_dir / "assets" / "store" / "msix_assets"
     promo_dir = root_dir / "assets" / "store" / "promotional"
+    screenshots_dir = root_dir / "assets" / "store" / "screenshots"
     promo_dir.mkdir(parents=True, exist_ok=True)
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     generate_msix_assets(msix_dir)
 
@@ -980,9 +1581,19 @@ if __name__ == "__main__":
     icon_lg = master.resize((88, 88), Image.Resampling.LANCZOS)
     icon_sm = master.resize((32, 32), Image.Resampling.LANCZOS)
 
+    # 1. プロモーションヘッダー付きスクリーンショット (1920x1080)
     create_screenshot_01_main_board(promo_dir, icon_lg, icon_sm)
     create_screenshot_02_card_detail(promo_dir, icon_lg, icon_sm)
     create_screenshot_03_keyboard_shortcuts(promo_dir, icon_lg, icon_sm)
     create_screenshot_04_privacy_and_safety(promo_dir, icon_lg, icon_sm)
     create_store_artworks(promo_dir)
-    print("All Microsoft Store assets generated successfully!")
+
+    # 2. 「何ができるのか」特化プロモーション画像 (1920x1080)
+    create_promo_features_overview(promo_dir, master)
+    create_promo_showcase(promo_dir, master, icon_sm)
+
+    # 3. 純粋な実機UIスクリーンショット (1920x1080)
+    create_clean_screenshots(screenshots_dir, icon_sm)
+
+    print("All Microsoft Store assets and screenshots generated successfully!")
+
