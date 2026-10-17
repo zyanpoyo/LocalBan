@@ -9,6 +9,7 @@ import {
   SaveStatus,
   BackupFileInfo,
   RestoreResult,
+  AppSettings,
 } from './types';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -278,12 +279,16 @@ export async function permanentlyDeleteCard(id: string): Promise<void> {
 }
 
 // System & Settings
-export async function fetchAppSettings(): Promise<{ close_to_tray: boolean }> {
-  return callCommand<{ close_to_tray: boolean }>('get_app_settings');
+export async function fetchAppSettings(): Promise<AppSettings> {
+  return callCommand<AppSettings>('get_app_settings');
 }
 
-export async function updateAppSettings(closeToTray: boolean): Promise<{ close_to_tray: boolean }> {
-  return callCommand<{ close_to_tray: boolean }>('update_app_settings', { closeToTray }, true);
+export async function updateAppSettings(closeToTray: boolean): Promise<AppSettings> {
+  return callCommand<AppSettings>('update_app_settings', { closeToTray }, true);
+}
+
+export async function completeCoachMark(): Promise<AppSettings> {
+  return callCommand<AppSettings>('complete_coach_mark', {}, true);
 }
 
 export async function shutdownServer(): Promise<void> {

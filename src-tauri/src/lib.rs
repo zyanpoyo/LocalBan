@@ -42,8 +42,9 @@ pub fn log_to_file(msg: &str) {
 
 pub fn run() {
     log_to_file("run() started");
+    let is_fresh_install = !config::get_db_path().exists() && !config::get_settings_path().exists();
     let _ = db::init_database();
-    let initial_settings = config::load_settings();
+    let initial_settings = config::load_or_init_settings(is_fresh_install);
     CLOSE_TO_TRAY.store(initial_settings.close_to_tray, Ordering::SeqCst);
 
     let mut builder = tauri::Builder::default();
@@ -225,6 +226,7 @@ pub fn run() {
             commands::get_system_status,
             commands::get_app_settings,
             commands::update_app_settings,
+            commands::complete_coach_mark,
             commands::shutdown_app,
             commands::open_external_url,
             commands::export_backup,
@@ -452,6 +454,59 @@ mod tests {
         // 再読み込みしても false が永続化されていること
         let reloaded = commands::get_app_settings();
         assert!(!reloaded.close_to_tray);
+
+        // コーチマーク完了の永続化テスト
+        let coach_res = commands::complete_coach_mark().unwrap();
+        assert!(coach_res.has_seen_coach_mark);
+        let reloaded_coach = commands::get_app_settings();
+        assert!(reloaded_coach.has_seen_coach_mark);
+
+        // 過去バージョン互換性: has_seen_coach_mark が無い JSON からのデシリアライズ
+        let legacy_json = r#"{"close_to_tray": true}"#;
+        let legacy_settings: config::AppSettings = serde_json::from_str(legacy_json).unwrap();
+        assert!(legacy_settings.has_seen_coach_mark, "既存ユーザー向けはデフォルトで true になるべき");
+
+        // 完全新規インストール判定: settings も db も無い場合は false
+        let fresh_init = config::AppSettings {
+            close_to_tray: true,
+            has_seen_coach_mark: false,
+        };
+        assert!(!fresh_init.has_seen_coach_mark);
+    }
+
+    // 9-2. 新規インストール時 vs アップデート時のコーチマーク初期化検証
+    #[test]
+    fn test_coach_mark_fresh_install_and_update_behavior() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let custom_path = temp_dir.path().to_str().unwrap().to_string();
+        std::env::set_var("LOCALBAN_DATA_DIR", &custom_path);
+
+        // A. 完全新規インストール（dbもsettingsも無し）
+        let fresh_settings = config::load_or_init_settings(true);
+        assert!(!fresh_settings.has_seen_coach_mark, "新規インストール時はコーチマーク未読 (false)");
+
+        // 完了処理
+        let mut updated = fresh_settings.clone();
+        updated.has_seen_coach_mark = true;
+        config::save_settings(&updated).unwrap();
+        assert!(config::load_settings().has_seen_coach_mark);
+
+        // B. アップデート時（既存環境からの起動）
+        let update_temp_dir = tempfile::tempdir().unwrap();
+        let update_path = update_temp_dir.path().to_str().unwrap().to_string();
+        std::env::set_var("LOCALBAN_DATA_DIR", &update_path);
+
+        let update_settings = config::load_or_init_settings(false);
+        assert!(update_settings.has_seen_coach_mark, "アップデート時はコーチマーク既読 (true)");
+
+        // C. 過去バージョンの settings.json (has_seen_coach_mark キー無し) が存在する場合
+        let legacy_temp_dir = tempfile::tempdir().unwrap();
+        let legacy_path = legacy_temp_dir.path().to_str().unwrap().to_string();
+        std::env::set_var("LOCALBAN_DATA_DIR", &legacy_path);
+        std::fs::write(config::get_settings_path(), r#"{"close_to_tray": true}"#).unwrap();
+
+        let legacy_loaded = config::load_settings();
+        assert!(legacy_loaded.has_seen_coach_mark, "過去バージョンからアップデートした場合は true");
     }
 
     // 10. 外部URL遷移のセキュリティ検証（http/https 以外は拒絶）

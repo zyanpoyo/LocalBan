@@ -81,6 +81,7 @@ pub struct SystemStatusResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettingsResponse {
     pub close_to_tray: bool,
+    pub has_seen_coach_mark: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

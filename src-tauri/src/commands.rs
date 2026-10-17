@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::config::{
     get_attachments_dir, get_backups_dir, load_settings,
-    safe_resolve_attachment_path, save_settings, AppSettings, APP_NAME, APP_VERSION,
+    safe_resolve_attachment_path, save_settings, APP_NAME, APP_VERSION,
     MAX_UPLOAD_SIZE,
 };
 use crate::db::get_connection;
@@ -1267,15 +1267,31 @@ pub fn get_app_settings() -> AppSettingsResponse {
     crate::CLOSE_TO_TRAY.store(settings.close_to_tray, std::sync::atomic::Ordering::SeqCst);
     AppSettingsResponse {
         close_to_tray: settings.close_to_tray,
+        has_seen_coach_mark: settings.has_seen_coach_mark,
     }
 }
 
 #[tauri::command]
 pub fn update_app_settings(close_to_tray: bool) -> Result<AppSettingsResponse, String> {
-    let settings = AppSettings { close_to_tray };
+    let mut settings = load_settings();
+    settings.close_to_tray = close_to_tray;
     save_settings(&settings)?;
     crate::CLOSE_TO_TRAY.store(close_to_tray, std::sync::atomic::Ordering::SeqCst);
-    Ok(AppSettingsResponse { close_to_tray })
+    Ok(AppSettingsResponse {
+        close_to_tray,
+        has_seen_coach_mark: settings.has_seen_coach_mark,
+    })
+}
+
+#[tauri::command]
+pub fn complete_coach_mark() -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings();
+    settings.has_seen_coach_mark = true;
+    save_settings(&settings)?;
+    Ok(AppSettingsResponse {
+        close_to_tray: settings.close_to_tray,
+        has_seen_coach_mark: true,
+    })
 }
 
 #[tauri::command]

@@ -51,17 +51,43 @@ pub fn get_settings_path() -> PathBuf {
     get_app_dir().join("settings.json")
 }
 
+fn default_has_seen_coach_mark() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct AppSettings {
     pub close_to_tray: bool,
+    #[serde(default = "default_has_seen_coach_mark")]
+    pub has_seen_coach_mark: bool,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
             close_to_tray: true,
+            has_seen_coach_mark: true,
         }
     }
+}
+
+pub fn load_or_init_settings(is_fresh_install: bool) -> AppSettings {
+    let path = get_settings_path();
+    if !path.exists() {
+        let initial_settings = AppSettings {
+            close_to_tray: true,
+            has_seen_coach_mark: !is_fresh_install,
+        };
+        let _ = save_settings(&initial_settings);
+        return initial_settings;
+    }
+
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Ok(settings) = serde_json::from_str::<AppSettings>(&content) {
+            return settings;
+        }
+    }
+    AppSettings::default()
 }
 
 pub fn load_settings() -> AppSettings {

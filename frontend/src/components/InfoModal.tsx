@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
-import { X, ShieldCheck, Scale, ExternalLink, Lock, Database, HardDrive } from 'lucide-react';
+import { X, ShieldCheck, Scale, ExternalLink, Lock, Database, HardDrive, Sparkles } from 'lucide-react';
 import { openExternalUrl } from '../api';
 
 interface InfoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenCoachMarks?: () => void;
 }
 
-export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
+export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, onOpenCoachMarks }) => {
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -159,6 +160,32 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
           </section>
+
+          {/* 4. 操作ガイド（コーチマーク）の再表示 */}
+          {onOpenCoachMarks && (
+            <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  操作ガイド（ツアー）を再確認する
+                </h4>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  初回起動時のコーチマークガイドを再生し、カンバンの基本操作や便利機能の配置を復習できます。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenCoachMarks();
+                }}
+                className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>ツアーを再生</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* フッター（外部リンク & 閉じるボタン） */}
