@@ -59,6 +59,10 @@ docs/microsoft_store_guide.md
 
 # Store Promotional Assets (Screenshots, Banners, Artwork)
 assets/store/promotional/
+assets/store/screenshots/
+assets/store/app_tile_icon_*.png
+assets/store/microsoft_store_logo_*.png
+assets/store/app_logo_*.png
 promotional/
 
 
