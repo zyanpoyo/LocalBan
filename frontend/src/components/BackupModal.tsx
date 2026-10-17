@@ -389,7 +389,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-600">
-                    起動時に自動生成される日次バックアップおよび復元直前に退避されたスナップショットです。
+                    起動時に自動生成される日次完全バックアップおよび復元直前に退避された完全スナップショットです（カード添付画像や設定を含みます）。
                   </p>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
@@ -513,9 +513,9 @@ export const BackupModal: React.FC<BackupModalProps> = ({
           message={
             confirmTarget.type === 'external'
               ? '選択したバックアップファイルからデータを復元します。現在のボードデータは上書きされます。'
-              : `スナップショット「${confirmTarget.filename}」からデータを復元します。現在のボードデータは上書きされます。`
+              : `スナップショット「${confirmTarget.filename}」からデータを復元します。現在のボードデータおよび添付ファイルは上書きされます。`
           }
-          subMessage="復元を実行する直前に、現在のデータは「復元前自動バックアップ (pre_restore)」として自動保存されます。よろしいですか？"
+          subMessage="復元を実行する直前に、現在の全データ（画像等含む）は「復元前自動バックアップ (pre_restore)」として自動保存されます。よろしいですか？"
           confirmLabel="復元を実行"
           cancelLabel="キャンセル"
           isDanger={true}

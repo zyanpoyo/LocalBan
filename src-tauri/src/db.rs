@@ -1,10 +1,9 @@
 use chrono::Utc;
 use rusqlite::{params, Connection, Result};
 use std::collections::HashSet;
-use std::path::PathBuf;
 use uuid::Uuid;
 
-use crate::config::{get_attachments_dir, get_backups_dir, get_db_path, init_dirs};
+use crate::config::{get_attachments_dir, get_db_path, init_dirs};
 
 pub const CURRENT_SCHEMA_VERSION: i32 = 1;
 
@@ -202,12 +201,14 @@ pub fn init_database() -> Result<()> {
     tx.execute_batch(&format!("PRAGMA user_version = {};", CURRENT_SCHEMA_VERSION))?;
     tx.commit()?;
 
-    // 起動時のバックアップと孤立添付ファイルクリーンアップ
-    perform_daily_backup(7);
+    // 起動時の完全バックアップと孤立添付ファイルクリーンアップ
+    crate::backup::perform_daily_backup(7);
     cleanup_orphaned_attachments();
 
     Ok(())
 }
+
+pub use crate::backup::{create_manual_snapshot, create_safety_backup, perform_daily_backup};
 
 pub fn backup_database_to(dest_path: &std::path::Path) -> Result<()> {
     let db_path = get_db_path();
@@ -247,62 +248,6 @@ pub fn restore_database_from(src_path: &std::path::Path) -> Result<()> {
     let _ = dst.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
 
     Ok(())
-}
-
-pub fn create_safety_backup() -> Result<PathBuf> {
-    let backups_dir = get_backups_dir();
-    let _ = std::fs::create_dir_all(&backups_dir);
-    let filename = format!("pre_restore_{}.db", Utc::now().format("%Y%m%d_%H%M%S"));
-    let target = backups_dir.join(&filename);
-    backup_database_to(&target)?;
-    Ok(target)
-}
-
-pub fn create_manual_snapshot() -> Result<PathBuf> {
-    let backups_dir = get_backups_dir();
-    let _ = std::fs::create_dir_all(&backups_dir);
-    let filename = format!("localban_manual_{}.db", Utc::now().format("%Y%m%d_%H%M%S"));
-    let target = backups_dir.join(&filename);
-    backup_database_to(&target)?;
-    Ok(target)
-}
-
-pub fn perform_daily_backup(keep_days: usize) {
-    let db_path = get_db_path();
-    if !db_path.exists() {
-        return;
-    }
-
-    let backups_dir = get_backups_dir();
-    let today_str = Utc::now().format("%Y%m%d").to_string();
-    let today_backup = backups_dir.join(format!("localban_{}.db", today_str));
-
-    if !today_backup.exists() {
-        let _ = backup_database_to(&today_backup);
-    }
-
-    // 7世代ローテーション
-    if let Ok(entries) = std::fs::read_dir(&backups_dir) {
-        let mut backups: Vec<PathBuf> = entries
-            .filter_map(|e| e.ok())
-            .map(|e| e.path())
-            .filter(|p| {
-                p.is_file()
-                    && p.file_name()
-                        .and_then(|n| n.to_str())
-                        .map(|n| n.starts_with("localban_") && n.ends_with(".db"))
-                        .unwrap_or(false)
-            })
-            .collect();
-
-        backups.sort();
-        if backups.len() > keep_days {
-            let delete_count = backups.len() - keep_days;
-            for old_file in backups.into_iter().take(delete_count) {
-                let _ = std::fs::remove_file(old_file);
-            }
-        }
-    }
 }
 
 pub fn cleanup_orphaned_attachments() {

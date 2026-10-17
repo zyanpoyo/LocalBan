@@ -27,7 +27,8 @@ Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクラ�
   - リスト削除時のカード自動アーカイブ退避
   - 2段階完全削除と孤立ファイル掃除
   - Fractional Indexing 自動リバランス
-  - 日次自動オンラインバックアップ（最新7世代保持）
+  - 日次自動完全バックアップ（最新7世代保持、画像添付ファイル・設定含む完全アーカイブ）
+  - 完全バックアップアーキテクチャ（.localban）による全バックアップ動作の一元化
 
 ### 3. [キーボードショートカット操作ガイド (keyboard_shortcuts.md)](keyboard_shortcuts.md)
 - **カード作成・保存フロー**: <kbd>c</kbd> / <kbd>n</kbd> / <kbd>1〜9</kbd> での作成開始、<kbd>Enter</kbd>（連続作成）、<kbd>Ctrl+Enter</kbd>（保存終了）、<kbd>Shift+Enter</kbd>（保存＋詳細展開）、IME変換保護

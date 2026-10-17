@@ -30,7 +30,7 @@ flowchart TD
         subgraph LocalStorage ["永続化データ (%APPDATA%/LocalBan/)"]
             DB[("SQLite データベース\n(localban.db)\n・WALモード / 外部キー有効")]
             Files[("添付ファイル実体格納庫\n(attachments/)\n・UUIDファイル名管理")]
-            Backups[("日次自動バックアップ\n(backups/localban_YYYYMMDD.db)\n・最新7世代保持")]
+            Backups[("日次自動完全バックアップ\n(backups/localban_YYYYMMDD.localban)\n・最新7世代保持\n・DB+画像+設定アーカイブ")]
             Logs[("実行ログ\n(logs/app.log)")]
         end
 
@@ -83,7 +83,7 @@ flowchart TD
 1. `LocalBan.exe` をダブルクリックして起動。
 2. `tauri-plugin-single-instance` により、同一プロセスの起動有無をチェック：
    - 既に起動している場合：既存ウィンドウを `show()` + `unminimize()` + `set_focus()` で最前面に復帰させ、新プロセスは即時終了。
-   - 新規起動の場合：`%APPDATA%/LocalBan` の各フォルダを作成し、SQLite スキーマ初期化および日次バックアップを実行。
+   - 新規起動の場合：`%APPDATA%/LocalBan` の各フォルダを作成し、SQLite スキーマ初期化および日次完全バックアップ（画像含む）を実行。
 3. 独立したデスクトップクライアントウィンドウ（Edge WebView2）を生成・表示。
 4. Windows タスクトレイ（通知領域）に「LocalBan」アイコンを常駐。
 
