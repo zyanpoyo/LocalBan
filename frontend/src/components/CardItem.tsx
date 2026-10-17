@@ -90,6 +90,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card, index, isSelected = fa
           }}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
+          data-coachmark={index === 0 ? 'sample-card' : undefined}
           onClick={onClick}
           className={`group bg-white rounded-xl border shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-150 cursor-pointer overflow-hidden ${
             snapshot.isDragging

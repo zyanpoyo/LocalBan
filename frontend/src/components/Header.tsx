@@ -120,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* アクションボタン */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-coachmark="header-tools">
         {/* ×ボタン動作切替トグル (Store 審査基準 10.4.2 ユーザビリティ対応) */}
         <button
           onClick={handleToggleCloseBehavior}

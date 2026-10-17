@@ -66,6 +66,7 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface AppSettings {
   close_to_tray: boolean;
+  has_seen_coach_mark: boolean;
 }
 
 export interface BackupFileInfo {

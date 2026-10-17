@@ -106,6 +106,13 @@ export const ListColumn: React.FC<ListColumnProps> = ({
             columnRef.current = node;
           }}
           {...provided.draggableProps}
+          data-coachmark={
+            index === 0
+              ? 'list-column-first'
+              : index === 1
+                ? 'list-column-doing'
+                : undefined
+          }
           onClick={() => onActivateList?.()}
           className={`w-72 sm:w-80 shrink-0 bg-slate-100/90 rounded-2xl border shadow-xs flex flex-col max-h-[calc(100vh-6rem)] transition-colors ${
             isActiveList
@@ -284,6 +291,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({
               </form>
             ) : (
               <button
+                data-coachmark={index === 0 ? 'add-card-btn' : undefined}
                 onClick={() => {
                   onActivateList?.();
                   setIsAddingCard(true);

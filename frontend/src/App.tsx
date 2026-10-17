@@ -9,6 +9,8 @@ import {
   moveCard,
   shutdownServer,
   onSyncMessage,
+  fetchAppSettings,
+  completeCoachMark,
 } from './api';
 import { Header } from './components/Header';
 import { Board } from './components/Board';
@@ -18,6 +20,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { ShortcutHelpModal } from './components/ShortcutHelpModal';
 import { InfoModal } from './components/InfoModal';
 import { BackupModal } from './components/BackupModal';
+import { CoachMarks } from './components/CoachMarks';
 import { Loader2, PowerOff } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -32,6 +35,7 @@ export const App: React.FC = () => {
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [isCoachMarkOpen, setIsCoachMarkOpen] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
 
   // リスト削除確認モーダル
@@ -54,6 +58,17 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadData();
 
+    // 初回起動時のコーチマーク表示確認
+    fetchAppSettings()
+      .then((settings) => {
+        if (!settings.has_seen_coach_mark) {
+          setIsCoachMarkOpen(true);
+        }
+      })
+      .catch((err) => {
+        console.error('設定の読み込みに失敗しました:', err);
+      });
+
     // 複数タブ間のリアルタイム同期 【項目22】
     const unsubscribeSync = onSyncMessage(() => {
       loadData();
@@ -63,6 +78,16 @@ export const App: React.FC = () => {
       unsubscribeSync();
     };
   }, [loadData]);
+
+  // コーチマーク完了・スキップ処理
+  const handleCompleteCoachMarks = async () => {
+    setIsCoachMarkOpen(false);
+    try {
+      await completeCoachMark();
+    } catch (err) {
+      console.error('コーチマーク完了ステータスの保存に失敗しました:', err);
+    }
+  };
 
   // グローバルショートカット: ? キーでショートカットヘルプモーダルを開閉
   useEffect(() => {
@@ -232,6 +257,7 @@ export const App: React.FC = () => {
     isShortcutHelpOpen ||
     isInfoOpen ||
     isBackupOpen ||
+    isCoachMarkOpen ||
     !!deletingList;
 
   return (
@@ -295,6 +321,14 @@ export const App: React.FC = () => {
       <InfoModal
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
+        onOpenCoachMarks={() => setIsCoachMarkOpen(true)}
+      />
+
+      {/* コーチマーク (初回起動ガイドツアー) */}
+      <CoachMarks
+        isOpen={isCoachMarkOpen}
+        onComplete={handleCompleteCoachMarks}
+        onSkip={handleCompleteCoachMarks}
       />
 
       {/* データ管理 (バックアップ & 復元) モーダル */}
