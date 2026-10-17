@@ -12,7 +12,8 @@ if (fs.existsSync(cargoBin) && !process.env.PATH?.includes(cargoBin)) {
   process.env.PATH = `${cargoBin}${path.delimiter}${process.env.PATH || ''}`;
 }
 const exeSrc = path.join(rootDir, 'src-tauri', 'target', 'release', 'LocalBan.exe');
-const version = '2.0.0';
+const tauriConf = JSON.parse(fs.readFileSync(path.join(rootDir, 'src-tauri', 'tauri.conf.json'), 'utf-8'));
+const version = tauriConf.version;
 const zipName = `LocalBan-v${version}-windows.zip`;
 const zipPath = path.join(distDir, zipName);
 
@@ -53,7 +54,14 @@ try {
 
 // インストーラー (NSIS setup.exe) を dist/ にコピー
 const nsisDir = path.join(rootDir, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
-const setupFiles = fs.existsSync(nsisDir) ? fs.readdirSync(nsisDir).filter((f) => f.endsWith('-setup.exe')) : [];
+const setupFiles = fs.existsSync(nsisDir)
+  ? fs.readdirSync(nsisDir).filter((f) => f.endsWith('-setup.exe') && f.includes(version))
+  : [];
+if (setupFiles.length === 0 && fs.existsSync(nsisDir)) {
+  const allSetup = fs.readdirSync(nsisDir).filter((f) => f.endsWith('-setup.exe'));
+  allSetup.sort((a, b) => fs.statSync(path.join(nsisDir, b)).mtimeMs - fs.statSync(path.join(nsisDir, a)).mtimeMs);
+  if (allSetup.length > 0) setupFiles.push(allSetup[0]);
+}
 if (setupFiles.length > 0) {
   const setupSrc = path.join(nsisDir, setupFiles[0]);
   const distSetupExe = path.join(distDir, `LocalBan-v${version}-setup.exe`);

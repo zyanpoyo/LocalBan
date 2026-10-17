@@ -1,6 +1,6 @@
-# LocalBan 設計ドキュメント (Technical Documentation) - v2.0.0
+# LocalBan 設計ドキュメント (Technical Documentation) - v2.1.0
 
-個人用オフラインカンバンボード「LocalBan v2.0.0」の技術設計ドキュメントです。  
+個人用オフラインカンバンボード「LocalBan v2.1.0」の技術設計ドキュメントです。  
 Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクライアントアプリの設計・仕様をまとめています。
 
 ---

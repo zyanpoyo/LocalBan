@@ -4,7 +4,8 @@ import { execSync } from 'node:child_process';
 
 const rootDir = path.resolve(import.meta.dirname, '..');
 const distDir = path.join(rootDir, 'dist');
-const version = '2.0.0';
+const tauriConf = JSON.parse(fs.readFileSync(path.join(rootDir, 'src-tauri', 'tauri.conf.json'), 'utf-8'));
+const version = tauriConf.version;
 const msixName = `LocalBan-v${version}-x64.msix`;
 const msixOutputPath = path.join(distDir, msixName);
 

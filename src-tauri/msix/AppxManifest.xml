@@ -8,7 +8,7 @@
   <Identity
     Name="zyanpoyo.LocalBan"
     Publisher="CN=E4EF494E-DD77-4239-A4AD-155D145F2C23"
-    Version="2.0.0.0"
+    Version="2.1.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
