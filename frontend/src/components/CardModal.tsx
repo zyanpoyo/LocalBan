@@ -45,8 +45,8 @@ import {
   deleteAttachment,
   getAttachmentDownloadUrl,
   downloadAttachmentFile,
+  openExternalUrl,
 } from '../api';
-import { openUrl } from '@tauri-apps/plugin-opener';
 
 interface CardModalProps {
   card: Card;
@@ -1113,7 +1113,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                                         onClick={(e) => {
                                           if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
                                             e.preventDefault();
-                                            openUrl(href).catch(console.error);
+                                            openExternalUrl(href).catch(console.error);
                                           }
                                         }}
                                         target="_blank"
@@ -1147,7 +1147,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                                     onClick={(e) => {
                                       if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
                                         e.preventDefault();
-                                        openUrl(href).catch(console.error);
+                                        openExternalUrl(href).catch(console.error);
                                       }
                                     }}
                                     target="_blank"
