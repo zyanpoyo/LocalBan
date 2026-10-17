@@ -8,6 +8,7 @@ import {
   Keyboard,
   ShieldCheck,
   Minimize2,
+  Database,
 } from 'lucide-react';
 import { onSaveStatusChange, fetchAppSettings, updateAppSettings } from '../api';
 import { SaveStatus } from '../types';
@@ -17,6 +18,7 @@ interface HeaderProps {
   onOpenShutdown: () => void;
   onOpenShortcutHelp?: () => void;
   onOpenInfo?: () => void;
+  onOpenBackup?: () => void;
   archivedCount: number;
 }
 
@@ -25,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShutdown,
   onOpenShortcutHelp,
   onOpenInfo,
+  onOpenBackup,
   archivedCount,
 }) => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -162,6 +165,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span className="hidden lg:inline">規約・免責</span>
+          </button>
+        )}
+
+        {/* データ管理 (バックアップ & 復元) */}
+        {onOpenBackup && (
+          <button
+            onClick={onOpenBackup}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-colors cursor-pointer"
+            title="データ管理 (バックアップ / 復元)"
+          >
+            <Database className="w-4 h-4 text-indigo-600" />
+            <span className="hidden sm:inline">データ管理</span>
           </button>
         )}
 

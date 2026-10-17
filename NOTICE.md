@@ -38,6 +38,11 @@
 - **著作権**: Copyright (c) 2013-present The rust-url developers
 - **URL**: https://github.com/servo/rust-url
 
+### zip
+- **ライセンス**: MIT License
+- **著作権**: Copyright (c) 2014 Mathijs van de Nes / zip-rs contributors
+- **URL**: https://github.com/zip-rs/zip2
+
 ---
 
 ## 2. フロントエンド / UIライブラリ (Node / React)

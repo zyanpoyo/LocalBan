@@ -209,6 +209,64 @@ pub fn init_database() -> Result<()> {
     Ok(())
 }
 
+pub fn backup_database_to(dest_path: &std::path::Path) -> Result<()> {
+    let db_path = get_db_path();
+    if !db_path.exists() {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
+    if let Some(parent) = dest_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let src = Connection::open(&db_path)?;
+    let mut dst = Connection::open(dest_path)?;
+    let backup = rusqlite::backup::Backup::new(&src, &mut dst)?;
+    backup.run_to_completion(10, std::time::Duration::from_millis(100), None)?;
+    Ok(())
+}
+
+pub fn restore_database_from(src_path: &std::path::Path) -> Result<()> {
+    // 1. ソースDBの整合性検証
+    {
+        let test_conn = Connection::open(src_path)?;
+        let integrity: String = test_conn.query_row("PRAGMA quick_check;", [], |r| r.get(0))?;
+        if integrity.to_lowercase() != "ok" {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+    }
+
+    // 2. ホットバックアップAPIを用いて現行DBに上書き復元
+    let db_path = get_db_path();
+    let src = Connection::open(src_path)?;
+    let mut dst = Connection::open(&db_path)?;
+    {
+        let backup = rusqlite::backup::Backup::new(&src, &mut dst)?;
+        backup.run_to_completion(10, std::time::Duration::from_millis(100), None)?;
+    }
+
+    // 3. WALのチェックポイント適用
+    let _ = dst.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+
+    Ok(())
+}
+
+pub fn create_safety_backup() -> Result<PathBuf> {
+    let backups_dir = get_backups_dir();
+    let _ = std::fs::create_dir_all(&backups_dir);
+    let filename = format!("pre_restore_{}.db", Utc::now().format("%Y%m%d_%H%M%S"));
+    let target = backups_dir.join(&filename);
+    backup_database_to(&target)?;
+    Ok(target)
+}
+
+pub fn create_manual_snapshot() -> Result<PathBuf> {
+    let backups_dir = get_backups_dir();
+    let _ = std::fs::create_dir_all(&backups_dir);
+    let filename = format!("localban_manual_{}.db", Utc::now().format("%Y%m%d_%H%M%S"));
+    let target = backups_dir.join(&filename);
+    backup_database_to(&target)?;
+    Ok(target)
+}
+
 pub fn perform_daily_backup(keep_days: usize) {
     let db_path = get_db_path();
     if !db_path.exists() {
@@ -220,13 +278,7 @@ pub fn perform_daily_backup(keep_days: usize) {
     let today_backup = backups_dir.join(format!("localban_{}.db", today_str));
 
     if !today_backup.exists() {
-        let _ = (|| -> Result<()> {
-            let src = Connection::open(&db_path)?;
-            let mut dst = Connection::open(&today_backup)?;
-            let backup = rusqlite::backup::Backup::new(&src, &mut dst)?;
-            backup.run_to_completion(5, std::time::Duration::from_millis(250), None)?;
-            Ok(())
-        })();
+        let _ = backup_database_to(&today_backup);
     }
 
     // 7世代ローテーション
