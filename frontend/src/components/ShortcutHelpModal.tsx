@@ -68,6 +68,8 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       { keys: ['Ctrl', 'E'], description: 'インラインコード (`コード`)' },
       { keys: ['Ctrl', 'Shift', 'K'], description: 'コードブロック (```...```)' },
       { keys: ['Ctrl', 'K'], description: 'リンク挿入 ([text](url))' },
+      { keys: ['Ctrl', 'Shift', 'U'], description: '箇条書きリスト (- 項目)' },
+      { keys: ['Ctrl', 'Shift', 'C'], description: 'チェックボックス / タスク (- [ ] タスク)' },
       { keys: ['Ctrl', 'Shift', '1〜3'], description: 'Qiita ノート挿入 (info / warn / alert)' },
     ],
   },

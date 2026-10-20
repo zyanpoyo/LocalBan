@@ -13,6 +13,8 @@ export type MarkdownFormatType =
   | 'code'
   | 'codeblock'
   | 'link'
+  | 'bullet-list'
+  | 'task-list'
   | 'note-info'
   | 'note-warn'
   | 'note-alert';
@@ -140,6 +142,116 @@ function executeMarkdownFormat(view: EditorView, type: MarkdownFormatType): void
       }
       break;
     }
+    case 'bullet-list': {
+      // 箇条書きリスト (- 項目) のトグル
+      const fromLine = state.doc.lineAt(start);
+      const toLine = state.doc.lineAt(end);
+      const changes: { from: number; to: number; insert: string }[] = [];
+
+      for (let l = fromLine.number; l <= toLine.number; l++) {
+        const line = state.doc.line(l);
+        const text = line.text;
+        const indentMatch = text.match(/^(\s*)/);
+        const indent = indentMatch ? indentMatch[1] : '';
+        const textWithoutIndent = text.slice(indent.length);
+
+        if (textWithoutIndent.trim().length === 0 && start === end) {
+          changes.push({
+            from: line.from,
+            to: line.to,
+            insert: `${indent}- リスト項目`,
+          });
+        } else if (/^[-*+]\s+(?!\[[ xX]\])/.test(textWithoutIndent)) {
+          // 既に箇条書きの場合は解除
+          const m = textWithoutIndent.match(/^[-*+]\s+/)!;
+          changes.push({
+            from: line.from + indent.length,
+            to: line.from + indent.length + m[0].length,
+            insert: '',
+          });
+        } else {
+          // タスクリストや順序付きリストがある場合は置換、なければ行頭に挿入
+          const otherMatch = textWithoutIndent.match(/^([-*+]\s+\[[ xX]\]\s+|\d+\.\s+)/);
+          if (otherMatch) {
+            changes.push({
+              from: line.from + indent.length,
+              to: line.from + indent.length + otherMatch[0].length,
+              insert: '- ',
+            });
+          } else {
+            changes.push({
+              from: line.from + indent.length,
+              to: line.from + indent.length,
+              insert: '- ',
+            });
+          }
+        }
+      }
+
+      view.dispatch({
+        changes,
+        userEvent: 'input.format.bullet',
+        annotations: isolateHistory.of('full'),
+        scrollIntoView: true,
+      });
+      view.focus();
+      break;
+    }
+    case 'task-list': {
+      // タスクリスト (- [ ] タスク) のトグル
+      const fromLine = state.doc.lineAt(start);
+      const toLine = state.doc.lineAt(end);
+      const changes: { from: number; to: number; insert: string }[] = [];
+
+      for (let l = fromLine.number; l <= toLine.number; l++) {
+        const line = state.doc.line(l);
+        const text = line.text;
+        const indentMatch = text.match(/^(\s*)/);
+        const indent = indentMatch ? indentMatch[1] : '';
+        const textWithoutIndent = text.slice(indent.length);
+
+        if (textWithoutIndent.trim().length === 0 && start === end) {
+          changes.push({
+            from: line.from,
+            to: line.to,
+            insert: `${indent}- [ ] タスク`,
+          });
+        } else if (/^[-*+]\s+\[[ xX]\]\s+/.test(textWithoutIndent)) {
+          // 既にタスクリストの場合は解除
+          const m = textWithoutIndent.match(/^[-*+]\s+\[[ xX]\]\s+/)!;
+          changes.push({
+            from: line.from + indent.length,
+            to: line.from + indent.length + m[0].length,
+            insert: '',
+          });
+        } else {
+          // 箇条書きや順序付きリストがある場合は置換、なければ行頭に挿入
+          const otherMatch = textWithoutIndent.match(/^([-*+]\s+|\d+\.\s+)/);
+          if (otherMatch) {
+            changes.push({
+              from: line.from + indent.length,
+              to: line.from + indent.length + otherMatch[0].length,
+              insert: '- [ ] ',
+            });
+          } else {
+            changes.push({
+              from: line.from + indent.length,
+              to: line.from + indent.length,
+              insert: '- [ ] ',
+            });
+          }
+        }
+      }
+
+      view.dispatch({
+        changes,
+        userEvent: 'input.format.task',
+        annotations: isolateHistory.of('full'),
+        scrollIntoView: true,
+      });
+      view.focus();
+      break;
+    }
     case 'note-info':
       applyBlockWrapper(':::note info', ':::', 'インフォメーション');
       break;
@@ -229,6 +341,22 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
           run: (view) => {
             if (view.composing) return false;
             executeMarkdownFormat(view, 'link');
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-u',
+          run: (view) => {
+            if (view.composing) return false;
+            executeMarkdownFormat(view, 'bullet-list');
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-c',
+          run: (view) => {
+            if (view.composing) return false;
+            executeMarkdownFormat(view, 'task-list');
             return true;
           },
         },

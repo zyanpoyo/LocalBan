@@ -25,6 +25,7 @@ import {
   Code,
   SquareCode,
   Link as LinkIcon,
+  List,
   Info,
   AlertTriangle,
   AlertCircle,
@@ -123,6 +124,8 @@ const MARKDOWN_SHORTCUT_ITEMS: {
   { type: 'code', label: 'インラインコード', shortcut: 'Ctrl+E', syntax: '`コード`' },
   { type: 'codeblock', label: 'コードブロック', shortcut: 'Ctrl+Shift+K', syntax: '```...```' },
   { type: 'link', label: 'リンク挿入', shortcut: 'Ctrl+K', syntax: '[text](url)' },
+  { type: 'bullet-list', label: '箇条書きリスト', shortcut: 'Ctrl+Shift+U', syntax: '- 項目' },
+  { type: 'task-list', label: 'チェックボックス', shortcut: 'Ctrl+Shift+C', syntax: '- [ ] タスク' },
   { type: 'note-info', label: 'Qiitaノート (補足)', shortcut: 'Ctrl+Shift+1', syntax: ':::note info' },
   { type: 'note-warn', label: 'Qiitaノート (警告)', shortcut: 'Ctrl+Shift+2', syntax: ':::note warn' },
   { type: 'note-alert', label: 'Qiitaノート (強い警告)', shortcut: 'Ctrl+Shift+3', syntax: ':::note alert' },
@@ -803,6 +806,22 @@ export const CardModal: React.FC<CardModalProps> = ({
                         className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
                       >
                         <LinkIcon className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('bullet-list')}
+                        title="箇条書きリスト (Ctrl+Shift+U)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <List className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('task-list')}
+                        title="チェックボックス / タスク (Ctrl+Shift+C)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
                       </button>
 
                       <span className="w-px h-4 bg-slate-300 mx-1" />
