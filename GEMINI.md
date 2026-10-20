@@ -45,3 +45,61 @@ node scripts/build_msix.js
 3. **判定の解説**:
    - `OVERALL_RESULT="PASS"` であることを確認する。
    - フル信頼アプリ（`Windows.FullTrustApplication`）特有の「ブロック済みの実行可能ファイル（プロセス起動 API 参照等）」は `OPTIONAL="TRUE"` の情報提供項目であり、Store 審査に影響しないことを必要に応じて説明する。
+
+## アプリケーション バージョンアップ手順ルール (Application Version Bump Procedure)
+ユーザーから「アプリのバージョンをあげる」「vX.Y.Z に更新して」等の指示があった場合は、以下の標準手順を厳密に実施してください。
+
+### 1. 更新対象ファイル（全13箇所の一括同期）
+以下のすべてのファイルにおいてバージョン番号（`vX.Y.Z` または MSIX用の `X.Y.Z.0`）を更新すること：
+1. `src-tauri/Cargo.toml`: `version = "X.Y.Z"`
+2. `src-tauri/tauri.conf.json`: `"version": "X.Y.Z"`
+3. `src-tauri/src/config.rs`: `pub const APP_VERSION: &str = "X.Y.Z";`
+4. `src-tauri/src/lib.rs`: `test_system_status` 内の `assert_eq!(status.version, "X.Y.Z");`
+5. `src-tauri/msix/AppxManifest.xml`: `Version="X.Y.Z.0"` (4桁表記)
+6. `frontend/package.json`: `"version": "X.Y.Z"`
+7. `frontend/src/components/Header.tsx`: バッジ表示 `vX.Y.Z`
+8. `frontend/src/components/InfoModal.tsx`: モーダル見出し `LocalBan vX.Y.Z — プライバシーポリシー・免責事項`
+9. `assets/dist_README.txt`: 見出し `LocalBan (ローカルバン) vX.Y.Z`
+10. `scripts/generate_store_assets.py`: モックUI描画のバッジテキスト `vX.Y.Z`（3箇所）
+11. `README.md`: タイトル見出し、インストーラーリンク、ZIP名、MSIX名（計4箇所）
+12. `docs/README.md`: タイトル見出し、本文内のバージョン表記
+13. `docs/architecture/system_overview.md`: タイトル見出し
+
+### 2. 事前検証 (Pre-verification)
+ファイル修正後、モジュールビルド前に必ず以下のコマンドを実行しエラーがないことを確認する：
+```powershell
+# フロントエンド型チェック & ビルド
+npm run --prefix frontend build
+
+# Rust コンパイルチェック
+cargo check --manifest-path src-tauri/Cargo.toml
+
+# Rust 単体テスト実行 (一時ディレクトリ競合防止のためシングルスレッド)
+cargo test --manifest-path src-tauri/Cargo.toml -- --test-threads=1
+```
+
+### 3. モジュール作成義務 (Mandatory Build Rule)
+事前検証が通った後、順にスクリプトを実行して配布物を生成する：
+```powershell
+node scripts/build_dist.js
+node scripts/build_msix.js
+```
+`dist/` 配下に以下が出力されていることを確認する：
+- `dist/LocalBan.exe`
+- `dist/LocalBan-vX.Y.Z-setup.exe`
+- `dist/LocalBan-vX.Y.Z-windows.zip`
+- `dist/LocalBan-vX.Y.Z-x64.msix`
+
+### 4. Git ブランチ運用・コミット・PR 発行
+1. 新規ブランチ `chore/bump-version-X.Y.Z` を作成・チェックアウト。
+2. 変更された13ファイルをステージングし、コミット：
+   - コミットタイトル: `chore: bump version to vX.Y.Z`
+   - コミット本文: 更新コンポーネント、検証パス、成果物生成の概要
+3. リモート `LocalBan-github` にプッシュ：
+   ```powershell
+   git push -u LocalBan-github chore/bump-version-X.Y.Z
+   ```
+4. GitHub 上で `main` をターゲットにしたプルリクエストを発行する。
+
+### 5. WACK 検証案内
+完了報告メッセージに、成果物の出力完了報告とともに「Windows App Certification Kit (WACK)」の GUI 手動実行手順を含めること。
