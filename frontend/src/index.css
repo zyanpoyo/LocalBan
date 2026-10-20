@@ -25,3 +25,208 @@
 input, textarea, [contenteditable="true"] {
   user-select: text;
 }
+
+/* =========================================================
+   CodeMirror 6 - Markdown Live Preview スタイル
+   ========================================================= */
+.cm-localban-wrapper .cm-editor {
+  min-height: 280px;
+  outline: none !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: transparent;
+}
+
+.cm-localban-wrapper .cm-scroller {
+  min-height: 280px;
+  padding: 0.75rem 0.875rem;
+  line-height: 1.7;
+}
+
+.cm-localban-wrapper .cm-content {
+  min-height: 256px;
+  padding: 0;
+  caret-color: #4f46e5;
+}
+
+.cm-localban-wrapper .cm-line {
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.cm-localban-wrapper .cm-placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* 非アクティブ行の見出し装飾 */
+.cm-lp-heading {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-lp-h1 {
+  font-size: 1.35rem;
+  line-height: 1.4;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.2rem !important;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 0.2rem;
+}
+
+.cm-lp-h2 {
+  font-size: 1.18rem;
+  line-height: 1.45;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.15rem !important;
+}
+
+.cm-lp-h3 {
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.cm-lp-h4,
+.cm-lp-h5,
+.cm-lp-h6 {
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+/* インライン装飾 */
+.cm-lp-bold {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cm-lp-italic {
+  font-style: italic;
+}
+
+.cm-lp-strikethrough {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.cm-lp-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82em;
+  background-color: #e2e8f0;
+  color: #e11d48;
+  padding: 0.12rem 0.38rem;
+  border-radius: 0.3rem;
+  border: 1px solid #cbd5e1;
+}
+
+/* リンク装飾 */
+.cm-lp-link {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cm-lp-link:hover {
+  color: #3730a3;
+}
+
+.cm-lp-link-icon {
+  display: inline-block;
+  font-size: 0.75em;
+  color: #6366f1;
+  cursor: pointer;
+  user-select: none;
+  margin-left: 1px;
+}
+
+/* タスクリストのチェックボックス Widget */
+.cm-lp-task-widget {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 0.45rem;
+}
+
+.cm-lp-task-checkbox {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 0.25rem;
+  accent-color: #4f46e5;
+  cursor: pointer;
+  margin: 0;
+}
+
+.cm-lp-task-checked-text {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+/* 順不同・順序付きリスト */
+.cm-lp-bullet-widget {
+  color: #6366f1;
+  font-weight: 700;
+  padding-right: 0.25rem;
+  user-select: none;
+}
+
+.cm-lp-ordered-marker {
+  color: #4f46e5;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 引用行 (> ) */
+.cm-lp-blockquote-line {
+  border-left: 3px solid #94a3b8;
+  padding-left: 0.75rem !important;
+  color: #475569;
+  background-color: rgba(241, 245, 249, 0.7);
+  font-style: italic;
+}
+
+/* コードブロック行 */
+.cm-lp-codeblock-fence {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  color: #64748b;
+  background-color: #f1f5f9;
+  padding-left: 0.75rem !important;
+}
+
+.cm-lp-codeblock-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding-left: 0.85rem !important;
+  padding-right: 0.85rem !important;
+}
+
+/* Qiita :::note 行装飾 */
+.cm-lp-note-line {
+  padding-left: 0.75rem !important;
+  border-left-width: 4px;
+  border-left-style: solid;
+}
+
+.cm-lp-note-info {
+  background-color: rgba(236, 253, 245, 0.85);
+  border-left-color: #10b981;
+}
+
+.cm-lp-note-warn {
+  background-color: rgba(255, 251, 235, 0.85);
+  border-left-color: #f59e0b;
+}
+
+.cm-lp-note-alert {
+  background-color: rgba(255, 241, 242, 0.85);
+  border-left-color: #f43f5e;
+}
+
+.cm-lp-note-header,
+.cm-lp-note-footer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  opacity: 0.65;
+}

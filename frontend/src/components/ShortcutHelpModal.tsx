@@ -55,9 +55,13 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
     ],
   },
   {
-    title: 'Markdown 装飾（説明欄編集中）',
+    title: 'Markdown 装飾・スマート入力（説明欄編集中）',
     icon: <Code2 className="w-4 h-4 text-indigo-600" />,
     items: [
+      { keys: ['Enter'], description: 'リスト・タスクリスト・引用の自動継続 / 空マーカー行で解除' },
+      { keys: ['Tab', 'Shift+Tab'], description: 'リスト・引用のインデント増減' },
+      { keys: ['`', '*', '~', '[', '('], description: '選択テキストを記号で自動囲み (Auto-surround)' },
+      { keys: ['Ctrl', 'V'], description: 'テキスト選択中にURLペーストで [text](url) 自動生成' },
       { keys: ['Ctrl', 'B'], description: '太字 (**太字**)' },
       { keys: ['Ctrl', 'I'], description: '斜体 (*斜体*)' },
       { keys: ['Ctrl', 'Shift', 'X'], description: '取り消し線 (~~取消~~)' },
