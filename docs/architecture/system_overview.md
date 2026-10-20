@@ -27,7 +27,12 @@ flowchart TD
             end
         end
 
-        subgraph LocalStorage ["永続化データ (%APPDATA%/LocalBan/)"]
+        subgraph LocalStorage ["永続化データ層 (論理パス: %APPDATA%/LocalBan/)"]
+            direction TB
+            subgraph PhysicalStorage ["実際の物理配置 (実行方式によりOSが自動解決)"]
+                Win32Path["exe直接実行: %APPDATA%\LocalBan\"]
+                MsixPath["Store版 (MSIX VFS): %LOCALAPPDATA%\Packages\zyanpoyo.LocalBan_*\LocalCache\Roaming\LocalBan\"]
+            end
             DB[("SQLite データベース\n(localban.db)\n・WALモード / 外部キー有効")]
             Files[("添付ファイル実体格納庫\n(attachments/)\n・UUIDファイル名管理")]
             Backups[("日次自動完全バックアップ\n(backups/localban_YYYYMMDD.localban)\n・最新7世代保持\n・DB+画像+設定アーカイブ")]
@@ -52,6 +57,9 @@ flowchart TD
 
 1. **完全ゼロ設定 & ポータブル**:
    - インストーラーや外部ランタイム（Python等）の事前導入は一切不要。`LocalBan.exe` 単体をダブルクリックするだけで `%APPDATA%/LocalBan` 配下にデータベースやフォルダが自動初期化され、独立したウィンドウが起動します。
+   - **実行形態による物理ストレージの違い (MSIX VFS)**:
+     - **exe 直接実行方式**: `%APPDATA%\LocalBan`（実体: `C:\Users\<User>\AppData\Roaming\LocalBan`）
+     - **Windows Store (MSIX) 方式**: Windows OS のファイルシステム仮想化（VFS: Virtual File System）により、透過的に `%LOCALAPPDATA%\Packages\zyanpoyo.LocalBan_jcb2ksg0pnr1p\LocalCache\Roaming\LocalBan` へリダイレクトされます。ストアアプリのアンインストール時にはこのパッケージ領域も OS により自動クリーンアップされます。
 2. **完全オフライン & ネイティブ完結**:
    - 外部通信、CDN、テレメトリ送信等は一切行いません。
    - バックエンド処理はすべて Rust でネイティブコンパイルされており、起動時間の大幅な短縮と省メモリ（数十MB程度）を実現しています。
