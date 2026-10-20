@@ -76,8 +76,12 @@
 セキュリティおよび誤操作によるデータ喪失防止のため、**画面内からのアンインストール操作は配置していません**。  
 アンインストールする場合は、ご利用の形態に応じて以下の手順を実行してください：
 
-- **Microsoft Store 版 / インストーラー版の場合**:
+- **Microsoft Store 版の場合**:
   - Windows の「設定」→「アプリ」→「インストールされているアプリ」から「LocalBan」を選択し、「アンインストール」を実行します。
+  > [!WARNING]
+  > Windows Store（MSIX）版では、OS の標準仕様により**アンインストール時にアプリ専用データ領域（タスクや添付画像等）もすべて自動削除**されます。データを保持したい場合は、アンインストール前にアプリ内の「データ管理」→「外部ファイルへ保存」から `.localban` バックアップファイルを必ずエクスポートしてください。
+- **インストーラー（Setup.exe）版の場合**:
+  - Windows の「設定」→「アプリ」→「インストールされているアプリ」から「LocalBan」を選択し、「アンインストール」を実行します（保存データ `%APPDATA%\LocalBan` は保持されます）。
 - **ポータブル版（配布ZIP）の場合**:
   1. 本アプリのフォルダ内にある `uninstall.bat` をダブルクリックします。
   2. 確認ダイアログ「LocalBan をアンインストールしますか？」が表示されますので、「はい」を選択します。
@@ -88,13 +92,35 @@
 
 ## 📁 データの保存場所
 
-すべてのデータは以下のローカルパスに保存されます：
+LocalBan はすべてのデータをローカル環境にのみ保存します。  
+プログラム上の論理パスは `%APPDATA%\LocalBan\` ですが、**起動方式（exe 直接実行か、Windows Store 版か）によって Windows OS の仮想化機能（VFS）により実際の保存先実体フォルダが異なります**。
 
-- **データベース**: `%APPDATA%\LocalBan\localban.db` (SQLite WALモード)
-- **アプリ設定**: `%APPDATA%\LocalBan\settings.json`
-- **添付ファイル**: `%APPDATA%\LocalBan\attachments\`
-- **日次完全バックアップ**: `%APPDATA%\LocalBan\backups\` (最新7世代保持、画像添付ファイルを含む `.localban` 完全アーカイブ形式)
-- **ログ**: `%APPDATA%\LocalBan\logs\app.log`
+### 実行方式別の実際の保存先パス
+
+| 実行方式 | 実際の保存先パス（実体） | アンインストール時のデータ挙動 |
+| :--- | :--- | :--- |
+| **exe 直接実行方式**<br>（ポータブル版 / Setup版） | `%APPDATA%\LocalBan\`<br>`C:\Users\<ユーザー名>\AppData\Roaming\LocalBan\` | アプリを削除してもデータは残る<br>（手動削除または `uninstall.bat` が必要） |
+| **Microsoft Store 方式**<br>（MSIX パッケージ版） | `%LOCALAPPDATA%\Packages\zyanpoyo.LocalBan_jcb2ksg0pnr1p\LocalCache\Roaming\LocalBan\`<br>`C:\Users\<ユーザー名>\AppData\Local\Packages\zyanpoyo.LocalBan_jcb2ksg0pnr1p\LocalCache\Roaming\LocalBan\` | アプリをアンインストールすると<br>**OS がパッケージ領域ごと自動完全削除** |
+
+> [!NOTE] なぜ保存先が変わるのか？（MSIX ファイルシステム仮想化: VFS）
+> Windows Store（MSIX）版では、Windows OS の **VFS（Virtual File System：ファイルシステム仮想化）** が動作します。アプリが `%APPDATA%\LocalBan` へ書き込みを行うと、OS が自動的かつ透過的にパッケージ専用の隔離フォルダ（`AppData\Local\Packages\...\LocalCache\Roaming\LocalBan`）へリダイレクトして保存します。
+
+### 格納されるファイル構成
+保存先フォルダ配下には以下のファイル・ディレクトリが格納されます：
+- **データベース**: `localban.db` (SQLite WALモード)
+- **アプリ設定**: `settings.json` (トレイ格納設定、初回ガイド状態等)
+- **添付ファイル**: `attachments\` (UUIDで管理された画像実体ファイル)
+- **日次完全バックアップ**: `backups\` (最新7世代保持、添付画像や設定を含む `.localban` 完全アーカイブ形式)
+- **ログ**: `logs\app.log`
+
+### 現在の保存先フォルダを素早く開く方法
+ヘッダーの「データ管理」モーダル内にある **「フォルダを開く」** ボタンをクリックすると、現在実行中の方式で実際に参照されている保存先（`backups` フォルダ）がエクスプローラーで直接開きます。
+
+### 方式間（ポータブル版 ⇔ Store版）でのデータ移行方法
+実体フォルダが異なるため、フォルダを手動で直接コピーするよりも、以下の手順で移行することを推奨します：
+1. 移行元のアプリで、ヘッダー「データ管理」→「外部ファイルへ保存」をクリックし、バックアップファイル（`.localban`）を任意の場所に保存。
+2. 移行先のアプリを起動し、ヘッダー「データ管理」→「外部ファイルから復元」をクリックして上記ファイルを選択。
+3. これにより、データベースだけでなく添付画像実体も含めた完全なデータが確実に移行されます。
 
 ---
 

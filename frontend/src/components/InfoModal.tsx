@@ -90,11 +90,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, onOpenCoa
                 </li>
                 <li>
                   <strong className="text-slate-800">完全ローカル保存</strong>:
-                  作成したボード・カード・添付画像・設定はすべてお使いのPC内のローカル領域（
-                  <code className="px-1 py-0.5 bg-white rounded border border-emerald-200 font-mono text-[11px]">
-                    %APPDATA%\LocalBan
-                  </code>
-                  ）にのみ保存されます。
+                  作成したボード・カード・添付画像・設定はすべてお使いのPC内のローカル領域にのみ保存されます（詳細な保存場所は公式ドキュメント / プライバシーポリシーを参照）。
                 </li>
                 <li>
                   <strong className="text-slate-800">第三者提供なし</strong>:

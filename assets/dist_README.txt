@@ -39,8 +39,8 @@ Tauri v2 (Full Rust) を採用した独立したネイティブクライアン�
 4. 完了ダイアログが表示されたら、残ったこのフォルダをごみ箱へ移動して削除してください。
 
 ■ データの保存場所
-すべてのデータは以下のローカルパスに保存されています：
-%APPDATA%\LocalBan\
+本ポータブル版で作成されたすべてのデータは以下のローカルパスに保存されます：
+%APPDATA%\LocalBan\ (C:\Users\<ユーザー名>\AppData\Roaming\LocalBan\)
   - localban.db   (SQLite データベース)
   - settings.json (アプリ設定ファイル)
   - attachments\  (カード添付画像ファイル)
@@ -51,6 +51,14 @@ Tauri v2 (Full Rust) を採用した独立したネイティブクライアン�
 
 ※ 手動スナップショットや復元前退避ファイルは、画面内の「フォルダを開く」から
    backups フォルダを開いて直接不要なファイルを削除・整理できます。
+
+【Windows Store 版との保存先の違いについて】
+Microsoft Store からインストールした LocalBan では、Windows OS の仮想化機能（VFS）
+により、データは以下のパッケージ専用領域に保存されます：
+%LOCALAPPDATA%\Packages\zyanpoyo.LocalBan_jcb2ksg0pnr1p\LocalCache\Roaming\LocalBan\
+ポータブル版から Store 版へ（またはその逆へ）データを引き継ぎたい場合は、
+アプリ画面ヘッダーの「データ管理」→「外部ファイルへ保存 (.localban)」でエクスポートし、
+移行先で「外部ファイルから復元」を実行してください。
 
 ■ 免責事項・知的財産権について (Disclaimer)
 - 本ソフトウェア（LocalBan）は独立した個人開発者によるオープンソース／ローカルファーストの

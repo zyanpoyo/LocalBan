@@ -493,7 +493,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({
           {/* フッター */}
           <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
             <span>
-              保存場所: <code className="font-mono">%APPDATA%\LocalBan\backups</code>
+              保存場所: ローカル専用領域（「フォルダを開く」から確認可能）
             </span>
             <button
               onClick={onClose}
