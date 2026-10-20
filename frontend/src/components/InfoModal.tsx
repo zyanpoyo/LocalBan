@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, ShieldCheck, Scale, ExternalLink, Lock, Database, HardDrive, Sparkles } from 'lucide-react';
+import { X, ShieldCheck, Scale, ExternalLink, Sparkles } from 'lucide-react';
 import { openExternalUrl } from '../api';
 
 interface InfoModalProps {
@@ -132,32 +132,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, onOpenCoa
             </div>
           </section>
 
-          {/* 3. システム・データ保存仕様 */}
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3 rounded-xl border border-slate-200 bg-white flex items-start gap-2.5">
-              <Lock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-800">完全オフライン</div>
-                <div className="text-slate-500 text-[11px]">認証不要・外部通信ゼロ</div>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl border border-slate-200 bg-white flex items-start gap-2.5">
-              <Database className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-800">SQLite WAL + 自動保護</div>
-                <div className="text-slate-500 text-[11px]">起動時7世代自動バックアップ</div>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl border border-slate-200 bg-white flex items-start gap-2.5">
-              <HardDrive className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-800">WebView2 ネイティブ</div>
-                <div className="text-slate-500 text-[11px]">Tauri v2 + Full Rust</div>
-              </div>
-            </div>
-          </section>
-
-          {/* 4. 操作ガイド（コーチマーク）の再表示 */}
+          {/* 3. 操作ガイド（コーチマーク）の再表示 */}
           {onOpenCoachMarks && (
             <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
