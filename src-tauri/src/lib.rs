@@ -199,6 +199,7 @@ pub fn run() {
             commands::get_lists,
             commands::create_list,
             commands::update_list,
+            commands::update_list_color,
             commands::delete_list,
             commands::get_cards,
             commands::get_card,
@@ -302,10 +303,41 @@ mod tests {
         assert_eq!(board.labels.len(), 6);
 
         let todo_list = board.lists.iter().find(|l| l.title == "ToDo").unwrap();
+        let doing_list = board.lists.iter().find(|l| l.title == "進行中").unwrap();
+        let done_list = board.lists.iter().find(|l| l.title == "完了").unwrap();
+        assert!(todo_list.color.is_none());
+        assert_eq!(doing_list.color.as_deref(), Some("blue"));
+        assert_eq!(done_list.color.as_deref(), Some("green"));
         let todo_card = board.cards.iter().find(|c| c.list_id.as_deref() == Some(&todo_list.id)).unwrap();
         assert!(todo_card.title.contains("LocalBanへようこそ"));
         assert_eq!(todo_card.checklists.len(), 1);
         assert_eq!(todo_card.checklists[0].items.len(), 3);
+    }
+
+    // 2.1 リストカラー設定・更新テスト
+    #[test]
+    fn test_update_list_color() {
+        let _env = TestEnv::new();
+        let list = commands::create_list("カラーテストリスト".into(), None).unwrap();
+        assert!(list.color.is_none());
+
+        // 青色に設定
+        let updated = commands::update_list_color(list.id.clone(), Some("blue".into())).unwrap();
+        assert_eq!(updated.color.as_deref(), Some("blue"));
+
+        // get_lists で確認
+        let lists = commands::get_lists().unwrap();
+        let target = lists.iter().find(|l| l.id == list.id).unwrap();
+        assert_eq!(target.color.as_deref(), Some("blue"));
+
+        // クリア（default に設定）
+        let cleared = commands::update_list_color(list.id.clone(), Some("default".into())).unwrap();
+        assert!(cleared.color.is_none());
+
+        // None でクリア
+        let _ = commands::update_list_color(list.id.clone(), Some("green".into())).unwrap();
+        let cleared_none = commands::update_list_color(list.id.clone(), None).unwrap();
+        assert!(cleared_none.color.is_none());
     }
 
     // 3. リストCRUD & リスト削除時自動アーカイブ

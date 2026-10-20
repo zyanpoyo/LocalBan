@@ -4,6 +4,7 @@ import {
   fetchBoardState,
   createList,
   updateList,
+  updateListColor,
   deleteList,
   createCard,
   moveCard,
@@ -126,6 +127,16 @@ export const App: React.FC = () => {
   const handleUpdateListTitle = async (listId: string, title: string) => {
     await updateList(listId, title);
     await loadData();
+  };
+
+  const handleUpdateListColor = async (listId: string, color: string | null) => {
+    if (boardState) {
+      const updatedLists = boardState.lists.map((l) =>
+        l.id === listId ? { ...l, color } : l
+      );
+      setBoardState({ ...boardState, lists: updatedLists });
+    }
+    await updateListColor(listId, color);
   };
 
   const handleMoveList = async (listId: string, position: number) => {
@@ -282,6 +293,7 @@ export const App: React.FC = () => {
           onMoveList={handleMoveList}
           onCreateList={handleCreateList}
           onUpdateListTitle={handleUpdateListTitle}
+          onUpdateListColor={handleUpdateListColor}
           onDeleteList={(list) => setDeletingList(list)}
           onCreateCard={handleCreateCard}
           onSelectCard={(card) => setSelectedCard(card)}

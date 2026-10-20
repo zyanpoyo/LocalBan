@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::config::{get_attachments_dir, get_db_path, init_dirs};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 1;
+pub const CURRENT_SCHEMA_VERSION: i32 = 2;
 
 pub fn get_connection() -> Result<Connection> {
     let db_path = get_db_path();
@@ -29,6 +29,7 @@ pub fn init_database() -> Result<()> {
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
             position REAL NOT NULL,
+            color TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -86,6 +87,19 @@ pub fn init_database() -> Result<()> {
         );",
     )?;
 
+    // 1.1 マイグレーション (v1 -> v2: lists.color カラム追加)
+    let user_version: i32 = tx.query_row("PRAGMA user_version;", [], |r| r.get(0)).unwrap_or(0);
+    if user_version < 2 {
+        let has_color: bool = tx
+            .prepare("PRAGMA table_info(lists);")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .flatten()
+            .any(|col| col == "color");
+        if !has_color {
+            tx.execute_batch("ALTER TABLE lists ADD COLUMN color TEXT;")?;
+        }
+    }
+
     // 2. 初期ラベル投入 (未登録の場合のみ)
     let label_count: i64 = tx.query_row("SELECT COUNT(*) FROM labels;", [], |r| r.get(0))?;
     if label_count == 0 {
@@ -114,16 +128,16 @@ pub fn init_database() -> Result<()> {
         let done_list_id = Uuid::new_v4().to_string();
 
         tx.execute(
-            "INSERT INTO lists (id, title, position, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
-            params![&todo_list_id, "ToDo", 1000.0, &now, &now],
+            "INSERT INTO lists (id, title, position, color, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            params![&todo_list_id, "ToDo", 1000.0, None::<String>, &now, &now],
         )?;
         tx.execute(
-            "INSERT INTO lists (id, title, position, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
-            params![&doing_list_id, "進行中", 2000.0, &now, &now],
+            "INSERT INTO lists (id, title, position, color, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            params![&doing_list_id, "進行中", 2000.0, Some("blue"), &now, &now],
         )?;
         tx.execute(
-            "INSERT INTO lists (id, title, position, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
-            params![&done_list_id, "完了", 3000.0, &now, &now],
+            "INSERT INTO lists (id, title, position, color, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            params![&done_list_id, "完了", 3000.0, Some("green"), &now, &now],
         )?;
 
         // ラベルIDマップ取得

@@ -52,6 +52,7 @@ export interface ListModel {
   id: string;
   title: string;
   position: number;
+  color?: string | null;
   created_at: string;
   updated_at: string;
 }

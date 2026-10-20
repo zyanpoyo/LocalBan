@@ -17,13 +17,16 @@ use crate::models::{
     ListResponse, RestoreResult, SystemStatusResponse,
 };
 
+pub const LIST_SELECT_FIELDS: &str = "id, title, position, color, created_at, updated_at";
+
 fn row_to_list(row: &rusqlite::Row) -> rusqlite::Result<ListResponse> {
     Ok(ListResponse {
         id: row.get(0)?,
         title: row.get(1)?,
         position: row.get(2)?,
-        created_at: row.get(3)?,
-        updated_at: row.get(4)?,
+        color: row.get(3)?,
+        created_at: row.get(4)?,
+        updated_at: row.get(5)?,
     })
 }
 
@@ -248,7 +251,7 @@ pub fn get_board_state() -> Result<BoardStateResponse, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
 
     let mut list_stmt = conn
-        .prepare("SELECT * FROM lists ORDER BY position ASC, created_at ASC;")
+        .prepare(&format!("SELECT {LIST_SELECT_FIELDS} FROM lists ORDER BY position ASC, created_at ASC;"))
         .map_err(|e| e.to_string())?;
     let lists: Vec<ListResponse> = list_stmt
         .query_map([], row_to_list)
@@ -297,7 +300,7 @@ pub fn get_board_state() -> Result<BoardStateResponse, String> {
 pub fn get_lists() -> Result<Vec<ListResponse>, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT * FROM lists ORDER BY position ASC, created_at ASC;")
+        .prepare(&format!("SELECT {LIST_SELECT_FIELDS} FROM lists ORDER BY position ASC, created_at ASC;"))
         .map_err(|e| e.to_string())?;
     let lists = stmt
         .query_map([], row_to_list)
@@ -331,13 +334,51 @@ pub fn create_list(title: String, position: Option<f64>) -> Result<ListResponse,
     let now = Utc::now().to_rfc3339();
 
     conn.execute(
-        "INSERT INTO lists (id, title, position, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
-        params![&id, &title_trimmed, pos, &now, &now],
+        "INSERT INTO lists (id, title, position, color, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+        params![&id, &title_trimmed, pos, None::<String>, &now, &now],
     )
     .map_err(|e| e.to_string())?;
 
-    conn.query_row("SELECT * FROM lists WHERE id = ?1;", params![&id], row_to_list)
+    conn.query_row(&format!("SELECT {LIST_SELECT_FIELDS} FROM lists WHERE id = ?1;"), params![&id], row_to_list)
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_list_color(
+    id: String,
+    color: Option<String>,
+) -> Result<ListResponse, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    let _existing = conn
+        .query_row(
+            &format!("SELECT {LIST_SELECT_FIELDS} FROM lists WHERE id = ?1;"),
+            params![&id],
+            row_to_list,
+        )
+        .map_err(|_| "List not found".to_string())?;
+
+    let now = Utc::now().to_rfc3339();
+    let color_trimmed = color.and_then(|c| {
+        let t = c.trim().to_string();
+        if t.is_empty() || t == "default" {
+            None
+        } else {
+            Some(t)
+        }
+    });
+
+    conn.execute(
+        "UPDATE lists SET color = ?1, updated_at = ?2 WHERE id = ?3;",
+        params![color_trimmed, now, id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.query_row(
+        &format!("SELECT {LIST_SELECT_FIELDS} FROM lists WHERE id = ?1;"),
+        params![&id],
+        row_to_list,
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -348,7 +389,7 @@ pub fn update_list(
 ) -> Result<ListResponse, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
     let existing = conn
-        .query_row("SELECT * FROM lists WHERE id = ?1;", params![&id], row_to_list)
+        .query_row(&format!("SELECT {LIST_SELECT_FIELDS} FROM lists WHERE id = ?1;"), params![&id], row_to_list)
         .map_err(|_| "List not found".to_string())?;
 
     let new_title = match title {
@@ -364,7 +405,7 @@ pub fn update_list(
     )
     .map_err(|e| e.to_string())?;
 
-    conn.query_row("SELECT * FROM lists WHERE id = ?1;", params![&id], row_to_list)
+    conn.query_row(&format!("SELECT {LIST_SELECT_FIELDS} FROM lists WHERE id = ?1;"), params![&id], row_to_list)
         .map_err(|e| e.to_string())
 }
 
