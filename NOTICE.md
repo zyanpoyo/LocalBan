@@ -72,6 +72,11 @@
 - **著作権**: Copyright (c) 2020 Titus Wormer <tituswormer@gmail.com>
 - **URL**: https://github.com/remarkjs/remark-gfm
 
+### CodeMirror 6 / Lezer (@codemirror/*, @lezer/*)
+- **ライセンス**: MIT License
+- **著作権**: Copyright (C) 2018-present by Marijn Haverbeke <marijn@haverbeke.berlin> and others
+- **URL**: https://codemirror.net/ / https://lezer.codemirror.net/
+
 ### Tailwind CSS / @tailwindcss/vite / @tailwindcss/typography
 - **ライセンス**: MIT License
 - **著作権**: Copyright (c) Tailwind Labs, Inc.

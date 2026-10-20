@@ -25,18 +25,18 @@ import {
   Code,
   SquareCode,
   Link as LinkIcon,
+  List,
   Info,
   AlertTriangle,
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
-import { Card, Label, ListModel, Checklist, Attachment } from '../types';
+import { Card, Label, ListModel, Checklist } from '../types';
 import {
   updateCard,
   copyCard,
   archiveCard,
   createChecklist,
-  updateChecklist,
   deleteChecklist,
   createChecklistItem,
   updateChecklistItem,
@@ -47,6 +47,12 @@ import {
   downloadAttachmentFile,
   openExternalUrl,
 } from '../api';
+import {
+  MarkdownLiveEditor,
+  MarkdownLiveEditorHandle,
+  MarkdownFormatType,
+} from './editor/MarkdownLiveEditor';
+import { useDescriptionAutoSave } from '../hooks/useDescriptionAutoSave';
 
 interface CardModalProps {
   card: Card;
@@ -94,17 +100,6 @@ const LABEL_COLOR_MAP: Record<string, string> = {
   purple: 'bg-purple-500 text-white',
 };
 
-type MarkdownFormatType =
-  | 'bold'
-  | 'italic'
-  | 'strikethrough'
-  | 'code'
-  | 'codeblock'
-  | 'link'
-  | 'note-info'
-  | 'note-warn'
-  | 'note-alert';
-
 type NoteVariant = 'info' | 'warn' | 'alert';
 
 type MarkdownSegment =
@@ -117,14 +112,20 @@ const MARKDOWN_SHORTCUT_ITEMS: {
   shortcut: string;
   syntax: string;
 }[] = [
-  { type: 'toggle-preview', label: '編集 ⇄ プレビュー切替', shortcut: 'Ctrl+Shift+P', syntax: 'モード切替' },
-  { type: 'save-desc', label: '説明文を保存', shortcut: 'Ctrl+Enter', syntax: '保存確定' },
+  { type: 'toggle-preview', label: 'Live編集 ⇄ 全体プレビュー', shortcut: 'Ctrl+Shift+P', syntax: 'モード切替' },
+  { type: 'save-desc', label: '説明文を即時保存 (自動保存対応)', shortcut: 'Ctrl+Enter', syntax: '即時Flush' },
+  { type: 'smart-list', label: 'リスト・引用の自動継続 / 空行解除', shortcut: 'Enter', syntax: '- / 1. / - [ ] / >' },
+  { type: 'smart-indent', label: 'リストのインデント増減', shortcut: 'Tab / Shift+Tab', syntax: '階層ネスト' },
+  { type: 'auto-surround', label: '選択テキストの自動囲み', shortcut: '` * ~ [ (', syntax: '選択中に記号キー' },
+  { type: 'smart-paste', label: 'スマートペースト (URLリンク化)', shortcut: 'Ctrl+V', syntax: '選択中にURL貼付' },
   { type: 'bold', label: '太字', shortcut: 'Ctrl+B', syntax: '**太字**' },
   { type: 'italic', label: '斜体', shortcut: 'Ctrl+I', syntax: '*斜体*' },
   { type: 'strikethrough', label: '取り消し線', shortcut: 'Ctrl+Shift+X', syntax: '~~取消~~' },
   { type: 'code', label: 'インラインコード', shortcut: 'Ctrl+E', syntax: '`コード`' },
   { type: 'codeblock', label: 'コードブロック', shortcut: 'Ctrl+Shift+K', syntax: '```...```' },
   { type: 'link', label: 'リンク挿入', shortcut: 'Ctrl+K', syntax: '[text](url)' },
+  { type: 'bullet-list', label: '箇条書きリスト', shortcut: 'Ctrl+Shift+U', syntax: '- 項目' },
+  { type: 'task-list', label: 'チェックボックス', shortcut: 'Ctrl+Shift+C', syntax: '- [ ] タスク' },
   { type: 'note-info', label: 'Qiitaノート (補足)', shortcut: 'Ctrl+Shift+1', syntax: ':::note info' },
   { type: 'note-warn', label: 'Qiitaノート (警告)', shortcut: 'Ctrl+Shift+2', syntax: ':::note warn' },
   { type: 'note-alert', label: 'Qiitaノート (強い警告)', shortcut: 'Ctrl+Shift+3', syntax: ':::note alert' },
@@ -221,8 +222,21 @@ export const CardModal: React.FC<CardModalProps> = ({
   const [title, setTitle] = useState(card.title);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
 
-  // Markdown 説明文
-  const [description, setDescription] = useState(card.description || '');
+  // Markdown 説明文 (LocalStorage即時キャッシュ + Debounce自動保存 + Flush機構)
+  const {
+    description,
+    saveState,
+    handleDescriptionChange,
+    flushSave,
+  } = useDescriptionAutoSave({
+    card,
+    onCardSaved: (updated) => {
+      setCurrentCard(updated);
+      onCardUpdated(updated);
+    },
+    debounceMs: 500,
+  });
+
   const [descMode, setDescMode] = useState<'edit' | 'preview'>('edit');
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
@@ -245,16 +259,17 @@ export const CardModal: React.FC<CardModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<MarkdownLiveEditorHandle>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCurrentCard(card);
-    setTitle(card.title);
-    setDescription(card.description || '');
+    if (!isEditingTitle) {
+      setTitle(card.title);
+    }
     setDueDate(toLocalDatetimeString(card.due_date));
     setIsDueComplete(card.is_due_complete);
-  }, [card]);
+  }, [card, isEditingTitle]);
 
   // クリップボードからの画像ペースト (Ctrl+V) 対応
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -317,11 +332,9 @@ export const CardModal: React.FC<CardModalProps> = ({
     setIsEditingTitle(false);
   };
 
-  // 説明文更新
+  // 説明文の即時フラッシュ保存
   const handleSaveDescription = async () => {
-    const updated = await updateCard(currentCard.id, { description });
-    setCurrentCard(updated);
-    onCardUpdated(updated);
+    await flushSave();
     setIsEditingDesc(false);
   };
 
@@ -334,184 +347,15 @@ export const CardModal: React.FC<CardModalProps> = ({
       setDescMode('edit');
       setIsEditingDesc(true);
       requestAnimationFrame(() => {
-        descTextareaRef.current?.focus();
+        editorRef.current?.focus();
       });
     }
   };
 
-  // Markdown 装飾・テンプレート挿入ヘルパー
+  // Markdown 装飾・テンプレート挿入ヘルパー (CodeMirror トランザクション経由)
   const applyMarkdownFormat = (type: MarkdownFormatType) => {
-    const textarea = descTextareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selected = description.slice(start, end);
     setIsEditingDesc(true);
-
-    const updateWithSelection = (nextText: string, selStart: number, selEnd: number) => {
-      setDescription(nextText);
-      requestAnimationFrame(() => {
-        textarea.focus();
-        textarea.setSelectionRange(selStart, selEnd);
-      });
-    };
-
-    // インライン装飾の囲み・トグル解除
-    const applyInlineWrapper = (wrapper: string, placeholder: string) => {
-      const len = wrapper.length;
-      const before = description.slice(Math.max(0, start - len), start);
-      const after = description.slice(end, end + len);
-
-      // 選択範囲の直前・直後が既に同じ記号で囲まれている場合は解除
-      const isValidOuterToggle =
-        before === wrapper &&
-        after === wrapper &&
-        !(wrapper === '*' && (description.slice(Math.max(0, start - 2), start) === '**' || description.slice(end, end + 2) === '**'));
-
-      if (isValidOuterToggle) {
-        const nextText =
-          description.slice(0, start - len) + selected + description.slice(end + len);
-        updateWithSelection(nextText, start - len, end - len);
-        return;
-      }
-
-      // 選択範囲自体が記号を含んで選択されている場合も解除
-      const isValidInnerToggle =
-        selected.length >= len * 2 &&
-        selected.startsWith(wrapper) &&
-        selected.endsWith(wrapper) &&
-        !(wrapper === '*' && selected.startsWith('**') && !selected.startsWith('***'));
-
-      if (isValidInnerToggle) {
-        const unwrapped = selected.slice(len, selected.length - len);
-        const nextText = description.slice(0, start) + unwrapped + description.slice(end);
-        updateWithSelection(nextText, start, start + unwrapped.length);
-        return;
-      }
-
-      const inner = selected || placeholder;
-      const inserted = `${wrapper}${inner}${wrapper}`;
-      const nextText = description.slice(0, start) + inserted + description.slice(end);
-      updateWithSelection(nextText, start + len, start + len + inner.length);
-    };
-
-    // ブロック装飾（コードブロック / Qiita :::note）の挿入
-    const applyBlockWrapper = (openFence: string, closeFence: string, placeholder: string) => {
-      const prefix = start > 0 && description[start - 1] !== '\n' ? '\n' : '';
-      const suffix = end < description.length && description[end] !== '\n' ? '\n' : '';
-      const inner = selected || placeholder;
-      const inserted = `${prefix}${openFence}\n${inner}\n${closeFence}${suffix}`;
-      const nextText = description.slice(0, start) + inserted + description.slice(end);
-      const innerStart = start + prefix.length + openFence.length + 1;
-      updateWithSelection(nextText, innerStart, innerStart + inner.length);
-    };
-
-    switch (type) {
-      case 'bold':
-        applyInlineWrapper('**', '太字');
-        break;
-      case 'italic':
-        applyInlineWrapper('*', '斜体');
-        break;
-      case 'strikethrough':
-        applyInlineWrapper('~~', '取り消し線');
-        break;
-      case 'code':
-        applyInlineWrapper('`', 'コード');
-        break;
-      case 'codeblock':
-        applyBlockWrapper('```', '```', 'コード');
-        break;
-      case 'link': {
-        const isUrl = /^https?:\/\/\S+$/i.test(selected.trim());
-        if (isUrl) {
-          const linkText = 'リンクテキスト';
-          const url = selected.trim();
-          const inserted = `[${linkText}](${url})`;
-          const nextText = description.slice(0, start) + inserted + description.slice(end);
-          updateWithSelection(nextText, start + 1, start + 1 + linkText.length);
-        } else {
-          const linkText = selected || 'リンクテキスト';
-          const urlPlaceholder = 'url';
-          const inserted = `[${linkText}](${urlPlaceholder})`;
-          const nextText = description.slice(0, start) + inserted + description.slice(end);
-          const urlStart = start + linkText.length + 3;
-          updateWithSelection(nextText, urlStart, urlStart + urlPlaceholder.length);
-        }
-        break;
-      }
-      case 'note-info':
-        applyBlockWrapper(':::note info', ':::', 'インフォメーション');
-        break;
-      case 'note-warn':
-        applyBlockWrapper(':::note warn', ':::', '警告\n○○に注意してください。');
-        break;
-      case 'note-alert':
-        applyBlockWrapper(':::note alert', ':::', 'より強い警告\n○○しないでください。');
-        break;
-    }
-  };
-
-  // 説明欄のショートカットキー入力ハンドラ (IME変換中は無視)
-  const handleDescKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      e.currentTarget.blur();
-      return;
-    }
-
-    const isMod = e.ctrlKey || e.metaKey;
-    if (!isMod || e.altKey) return;
-
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      void handleSaveDescription();
-      return;
-    }
-
-    const key = e.key.toLowerCase();
-
-    if (!e.shiftKey) {
-      if (key === 'b') {
-        e.preventDefault();
-        applyMarkdownFormat('bold');
-      } else if (key === 'i') {
-        e.preventDefault();
-        applyMarkdownFormat('italic');
-      } else if (key === 'e') {
-        e.preventDefault();
-        applyMarkdownFormat('code');
-      } else if (key === 'k') {
-        e.preventDefault();
-        applyMarkdownFormat('link');
-      }
-    } else {
-      if (key === 'p') {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleDescMode();
-      } else if (key === 'x') {
-        e.preventDefault();
-        applyMarkdownFormat('strikethrough');
-      } else if (key === 'k' || key === 'c') {
-        e.preventDefault();
-        applyMarkdownFormat('codeblock');
-      } else if (e.code === 'Digit1' || key === '1' || key === '!') {
-        e.preventDefault();
-        applyMarkdownFormat('note-info');
-      } else if (e.code === 'Digit2' || key === '2' || key === '"' || key === '@') {
-        e.preventDefault();
-        applyMarkdownFormat('note-warn');
-      } else if (e.code === 'Digit3' || key === '3' || key === '#') {
-        e.preventDefault();
-        applyMarkdownFormat('note-alert');
-      }
-    }
+    editorRef.current?.applyFormat(type);
   };
 
   // ラベル着脱
@@ -669,16 +513,9 @@ export const CardModal: React.FC<CardModalProps> = ({
     onClose();
   };
 
-  // 安全なモーダル終了ハンドラ (未保存の説明文があれば自動保存)
+  // 安全なモーダル終了ハンドラ (デバウンス待ちの未保存説明文があれば即時フラッシュ保存)
   const handleSafeClose = async () => {
-    if (description !== (currentCard.description || '')) {
-      try {
-        const updated = await updateCard(currentCard.id, { description });
-        onCardUpdated(updated);
-      } catch (err) {
-        console.error('Failed to auto-save description on close:', err);
-      }
-    }
+    await flushSave();
     onClose();
   };
 
@@ -698,7 +535,7 @@ export const CardModal: React.FC<CardModalProps> = ({
         return;
       }
 
-      // 2. Ctrl+Enter: 説明文の変更を保存
+      // 2. Ctrl+Enter: 説明文の変更を即時フラッシュ保存
       if (isMod && !e.shiftKey && !e.altKey && e.key === 'Enter') {
         if (isEditingDesc || description !== (currentCard.description || '')) {
           e.preventDefault();
@@ -714,6 +551,7 @@ export const CardModal: React.FC<CardModalProps> = ({
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
           target.isContentEditable ||
+          !!target.closest?.('.cm-editor') ||
           target.matches?.(':read-write, select, input, textarea'));
 
       // 3. Escape: 段階的に閉じる
@@ -744,7 +582,7 @@ export const CardModal: React.FC<CardModalProps> = ({
         setDescMode('edit');
         setIsEditingDesc(true);
         requestAnimationFrame(() => {
-          descTextareaRef.current?.focus();
+          editorRef.current?.focus();
         });
       } else if (key === 'd') {
         e.preventDefault();
@@ -849,24 +687,50 @@ export const CardModal: React.FC<CardModalProps> = ({
               </div>
             )}
 
-            {/* 説明欄 (Markdown対応) */}
+            {/* 説明欄 (Markdown Live Preview + Smart Typing 対応) */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 text-slate-700 font-semibold text-sm">
                   <AlignLeft className="w-4 h-4 text-slate-500" />
                   <span>説明</span>
+                  {/* オートセーブ状態インジケータ */}
+                  {saveState === 'saving' && (
+                    <span className="text-[11px] font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full animate-pulse">
+                      自動保存中...
+                    </span>
+                  )}
+                  {saveState === 'dirty' && (
+                    <span className="text-[11px] font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                      ローカル保護済み
+                    </span>
+                  )}
+                  {saveState === 'saved' && (
+                    <span className="text-[11px] font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      自動保存済み
+                    </span>
+                  )}
+                  {saveState === 'restored' && (
+                    <span className="text-[11px] font-normal text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                      未保存ドラフトを復元しました
+                    </span>
+                  )}
+                  {saveState === 'error' && (
+                    <span className="text-[11px] font-normal text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
+                      保存エラー（ローカル保持中）
+                    </span>
+                  )}
                 </div>
-                {/* 編集 / プレビュー 切替タブ */}
+                {/* Live編集 / 全体プレビュー 切替タブ */}
                 <div className="flex items-center bg-slate-100 rounded-lg p-0.5 text-xs">
                   <button
                     onClick={() => {
                       setDescMode('edit');
                       setIsEditingDesc(true);
                       requestAnimationFrame(() => {
-                        descTextareaRef.current?.focus();
+                        editorRef.current?.focus();
                       });
                     }}
-                    title="編集モード (Ctrl+Shift+P で切替 / e でフォーカス)"
+                    title="Live Preview 編集モード (Ctrl+Shift+P で切替 / e でフォーカス)"
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                       descMode === 'edit' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'
                     }`}
@@ -879,7 +743,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                       setDescMode('preview');
                       setShowShortcutHelp(false);
                     }}
-                    title="プレビュー切替 (Ctrl+Shift+P)"
+                    title="全体プレビュー切替 (Ctrl+Shift+P)"
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                       descMode === 'preview' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'
                     }`}
@@ -942,6 +806,22 @@ export const CardModal: React.FC<CardModalProps> = ({
                         className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
                       >
                         <LinkIcon className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('bullet-list')}
+                        title="箇条書きリスト (Ctrl+Shift+U)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <List className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyMarkdownFormat('task-list')}
+                        title="チェックボックス / タスク (Ctrl+Shift+C)"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
                       </button>
 
                       <span className="w-px h-4 bg-slate-300 mx-1" />
@@ -1026,41 +906,24 @@ export const CardModal: React.FC<CardModalProps> = ({
                     )}
                   </div>
 
-                  <textarea
-                    ref={descTextareaRef}
+                  <MarkdownLiveEditor
+                    ref={editorRef}
+                    cardId={currentCard.id}
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={handleDescriptionChange}
                     onFocus={() => setIsEditingDesc(true)}
-                    onKeyDown={handleDescKeyDown}
-                    placeholder="Markdown形式でカードの詳細な説明を入力... (ショートカットキー対応)"
-                    rows={12}
-                    className="w-full min-h-[280px] max-h-[60vh] p-3.5 text-sm leading-relaxed bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400/20 transition-all font-mono resize-y [field-sizing:content]"
+                    onRequestSaveFlush={() => void handleSaveDescription()}
+                    onTogglePreviewMode={toggleDescMode}
                   />
-                  {isEditingDesc && (
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleSaveDescription}
-                          title="説明を保存 (Ctrl+Enter)"
-                          className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
-                        >
-                          保存
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDescription(currentCard.description || '');
-                            setIsEditingDesc(false);
-                          }}
-                          className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-slate-400 hidden sm:inline">
-                        <kbd className="font-mono font-semibold text-slate-500">Ctrl+Shift+P</kbd> プレビュー切替 / <kbd className="font-mono font-semibold text-slate-500">Ctrl+Enter</kbd> 保存
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between gap-2 text-[10px] text-slate-400 px-1">
+                    <span>
+                      インラインLive Preview有効（カーソル行のみMarkdown記号を表示 / 自動保存対応）
+                    </span>
+                    <span className="hidden sm:inline">
+                      <kbd className="font-mono font-semibold text-slate-500">Ctrl+Z</kbd> 元に戻す /{' '}
+                      <kbd className="font-mono font-semibold text-slate-500">Ctrl+Shift+P</kbd> 全体プレビュー
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1168,31 +1031,11 @@ export const CardModal: React.FC<CardModalProps> = ({
                       <span className="text-slate-400 italic">説明はありません。</span>
                     )}
                   </div>
-                  {description !== (currentCard.description || '') && (
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleSaveDescription}
-                          title="説明を保存 (Ctrl+Enter)"
-                          className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
-                        >
-                          保存
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDescription(currentCard.description || '');
-                            setIsEditingDesc(false);
-                          }}
-                          className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
-                        >
-                          変更を破棄
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-slate-400 hidden sm:inline">
-                        <kbd className="font-mono font-semibold text-slate-500">Ctrl+Shift+P</kbd> 編集に戻る / <kbd className="font-mono font-semibold text-slate-500">Ctrl+Enter</kbd> 保存
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-end text-[10px] text-slate-400 px-1">
+                    <span className="hidden sm:inline">
+                      <kbd className="font-mono font-semibold text-slate-500">Ctrl+Shift+P</kbd> Live編集に戻る
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
