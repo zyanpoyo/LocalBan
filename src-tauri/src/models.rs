@@ -5,6 +5,7 @@ pub struct ListResponse {
     pub id: String,
     pub title: String,
     pub position: f64,
+    pub color: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

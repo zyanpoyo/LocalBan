@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { Plus, MoreHorizontal, Trash2, X } from 'lucide-react';
+import { Plus, MoreHorizontal, Trash2, X, Check } from 'lucide-react';
+import { getListColorConfig, LIST_COLOR_OPTIONS } from './listColorConfig';
 import { Card, ListModel } from '../types';
 import { CardItem } from './CardItem';
 
@@ -14,6 +15,7 @@ interface ListColumnProps {
   onSetAddingCard?: (adding: boolean) => void;
   onActivateList?: () => void;
   onUpdateListTitle: (listId: string, newTitle: string) => void;
+  onUpdateListColor?: (listId: string, color: string | null) => void;
   onDeleteList: (list: ListModel) => void;
   onAddCard: (listId: string, title: string, openModal?: boolean) => void | Promise<void>;
   onSelectCard: (card: Card) => void;
@@ -29,6 +31,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({
   onSetAddingCard,
   onActivateList,
   onUpdateListTitle,
+  onUpdateListColor,
   onDeleteList,
   onAddCard,
   onSelectCard,
@@ -38,6 +41,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({
   const [internalAddingCard, setInternalAddingCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const colorConfig = getListColorConfig(list.color);
 
   const columnRef = useRef<HTMLDivElement | null>(null);
   const addCardTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -114,7 +118,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({
                 : undefined
           }
           onClick={() => onActivateList?.()}
-          className={`w-72 sm:w-80 shrink-0 bg-slate-100/90 rounded-2xl border shadow-xs flex flex-col max-h-[calc(100vh-6rem)] transition-colors ${
+          className={`w-72 sm:w-80 shrink-0 rounded-2xl border shadow-xs flex flex-col max-h-[calc(100vh-6rem)] transition-colors ${colorConfig.containerClass} ${
             isActiveList
               ? 'border-indigo-400/90 ring-2 ring-indigo-400/20'
               : 'border-slate-200/60'
@@ -159,10 +163,11 @@ export const ListColumn: React.FC<ListColumnProps> = ({
                     {index + 1}
                   </kbd>
                 )}
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${colorConfig.dotClass}`} />
                 <h2 className="text-sm font-bold text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors truncate">
                   {list.title}
                 </h2>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 font-semibold shrink-0">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold shrink-0 transition-colors ${colorConfig.headerBadgeClass}`}>
                   {cards.length}
                 </span>
               </div>
@@ -184,13 +189,40 @@ export const ListColumn: React.FC<ListColumnProps> = ({
                     className="fixed inset-0 z-20"
                     onClick={() => setShowMenu(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-30 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 pb-1.5 text-[11px] font-semibold text-slate-400">
+                      カラー
+                    </div>
+                    <div className="px-3 py-1 grid grid-cols-5 gap-1.5">
+                      {LIST_COLOR_OPTIONS.map((c) => {
+                        const isSelected = (!list.color && c.key === 'default') || list.color === c.key;
+                        return (
+                          <button
+                            key={c.key}
+                            type="button"
+                            onClick={() => {
+                              setShowMenu(false);
+                              onUpdateListColor?.(list.id, c.key === 'default' ? null : c.key);
+                            }}
+                            title={c.label}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${c.dotClass} hover:scale-110 active:scale-95 ${
+                              isSelected ? 'ring-2 ring-offset-2 ring-indigo-500 shadow-xs' : 'hover:ring-1 hover:ring-slate-300'
+                            }`}
+                          >
+                            {isSelected && (
+                              <Check className="w-3.5 h-3.5 text-white drop-shadow-xs" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t border-slate-100 my-1.5" />
                     <button
                       onClick={() => {
                         setShowMenu(false);
                         onDeleteList(list);
                       }}
-                      className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                      className="w-full px-3 py-1.5 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>リストを削除</span>
@@ -208,7 +240,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({
                 ref={dropProvided.innerRef}
                 {...dropProvided.droppableProps}
                 className={`flex-1 p-2.5 overflow-y-auto space-y-2.5 min-h-16 transition-colors rounded-b-xl ${
-                  snapshot.isDraggingOver ? 'bg-indigo-50/50' : ''
+                  snapshot.isDraggingOver ? colorConfig.dragOverClass : ''
                 }`}
               >
                 {cards.map((card, cIndex) => (
@@ -297,7 +329,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({
                   setIsAddingCard(true);
                 }}
                 title="カードを追加 (c または n)"
-                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-slate-200/60 rounded-xl transition-all cursor-pointer group"
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer group ${colorConfig.addBtnClass}`}
               >
                 <span className="flex items-center gap-2">
                   <Plus className="w-4 h-4" />

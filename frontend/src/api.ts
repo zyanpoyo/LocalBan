@@ -97,6 +97,12 @@ export async function updateList(id: string, title?: string, position?: number):
   return list;
 }
 
+export async function updateListColor(id: string, color: string | null): Promise<ListModel> {
+  const list = await callCommand<ListModel>('update_list_color', { id, color }, true);
+  notifySync('UPDATE_LIST');
+  return list;
+}
+
 export async function deleteList(id: string): Promise<void> {
   await callCommand('delete_list', { id }, true);
   notifySync('DELETE_LIST');

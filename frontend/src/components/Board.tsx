@@ -12,6 +12,7 @@ interface BoardProps {
   onMoveList: (listId: string, newPosition: number) => void;
   onCreateList: (title: string) => void;
   onUpdateListTitle: (listId: string, newTitle: string) => void;
+  onUpdateListColor?: (listId: string, color: string | null) => void;
   onDeleteList: (list: ListModel) => void;
   onCreateCard: (listId: string, title: string, openModal?: boolean) => void | Promise<void>;
   onSelectCard: (card: Card) => void;
@@ -25,6 +26,7 @@ export const Board: React.FC<BoardProps> = ({
   onMoveList,
   onCreateList,
   onUpdateListTitle,
+  onUpdateListColor,
   onDeleteList,
   onCreateCard,
   onSelectCard,
@@ -255,6 +257,7 @@ export const Board: React.FC<BoardProps> = ({
                   }}
                   onActivateList={() => setActiveListIndex(index)}
                   onUpdateListTitle={onUpdateListTitle}
+                  onUpdateListColor={onUpdateListColor}
                   onDeleteList={onDeleteList}
                   onAddCard={onCreateCard}
                   onSelectCard={(card) => {
