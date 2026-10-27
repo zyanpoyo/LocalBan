@@ -41,4 +41,11 @@ Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクラ�
 - **Qiita互換 ノート記法（`:::note info` / `warn` / `alert`）**: 3種類のコールアウト表示と専用ショートカットキー（`Ctrl+Shift+1`〜`3`）
 - **フォーマットツールバー & ヘルプポップオーバー**: ワンクリック装飾挿入とショートカット一覧表示
 
+### 5. [CI/CD・脆弱性＆ライセンス監査パイプライン設計 (architecture/cicd_security_design.md)](architecture/cicd_security_design.md)
+- **全体パイプライン構成図**: GitHub Dependabot 自動監視、ローカル統合監査スクリプト、モジュール生成パイプラインの連携図
+- **コア設計原則**: 完全無料（OSS＆GitHub標準機能）、省力運用（通常月1回・脆弱性即時検知）、Windowsターゲット特化によるノイズ排除
+- **コンポーネント別設計仕様**: `.github/dependabot.yml`、`src-tauri/deny.toml`（`cargo-deny`）、`scripts/security_audit.js` の詳細仕様
+- **脆弱性検知時の標準対応ワークフロー**: 自動修復、孫依存の強制オーバーライド手順、`NOTICE.md` 整合確認、パッチリリース手順
+
+
 

@@ -1,0 +1,48 @@
+# =============================================================================
+# LocalBan - cargo-deny Configuration
+# Rust クレートの脆弱性 (Advisories) / ライセンス (Licenses) / 取得元 (Sources) 監査設定
+# 実行コマンド: cargo deny --manifest-path src-tauri/Cargo.toml check advisories licenses sources
+# =============================================================================
+
+[graph]
+targets = [
+    { triple = "x86_64-pc-windows-msvc" },
+]
+all-features = false
+no-default-features = false
+
+# 1. 脆弱性監査 (RustSec Advisory Database)
+[advisories]
+version = 2
+ignore = [
+    # 必要に応じて、Windows環境では影響しないプラットフォーム固有の警告や
+    # メンテナンス終了(unmaintained)通知で直接影響がないもののIDをここに記載可能
+]
+
+# 2. ライセンス監査 (GPL/AGPL等の強いコピーレフト混入防止)
+[licenses]
+version = 2
+confidence-threshold = 0.8
+unused-allowed-license = "allow"
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "MPL-2.0",
+    "Unlicense",
+    "CC0-1.0",
+]
+
+# 3. 取得元レジストリの制限 (サプライチェーン攻撃対策)
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
