@@ -159,7 +159,7 @@ pub fn build_card_response(conn: &Connection, card_id: &str) -> Result<CardRespo
             .prepare(
                 "SELECT id, card_id, filename, stored_filename, file_size, mime_type, created_at
                  FROM attachments
-                 WHERE card_id = ?1
+                 WHERE card_id = ?1 AND is_cover = 0
                  ORDER BY created_at ASC;",
             )
             .map_err(|e| e.to_string())?;
@@ -563,19 +563,48 @@ pub fn update_card(
         existing.2
     };
     let new_comp = is_due_complete.unwrap_or(existing.3);
-    let new_cover = if clear_cover == Some(true) {
-        None
+    let (new_cover, old_cover_to_delete) = if clear_cover == Some(true) {
+        (None, existing.4.clone())
     } else if let Some(cover_opt) = cover_attachment_id {
         match cover_opt {
-            Some(c) if !c.trim().is_empty() => Some(c),
-            _ => None,
+            Some(c) if !c.trim().is_empty() => {
+                let trimmed = c.trim().to_string();
+                let old_to_del = if existing.4.as_deref() != Some(&trimmed) {
+                    existing.4.clone()
+                } else {
+                    None
+                };
+                (Some(trimmed), old_to_del)
+            }
+            _ => (None, existing.4.clone()),
         }
     } else {
-        existing.4
+        (existing.4.clone(), None)
     };
     let now = Utc::now().to_rfc3339();
 
     let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    let mut old_stored_file_to_remove: Option<String> = None;
+    if let Some(ref old_cid) = old_cover_to_delete {
+        let old_att_info: Option<(String, i32)> = tx
+            .query_row(
+                "SELECT stored_filename, is_cover FROM attachments WHERE id = ?1;",
+                params![old_cid],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+
+        if let Some((old_stored, is_cover)) = old_att_info {
+            if is_cover == 1 {
+                old_stored_file_to_remove = Some(old_stored);
+                tx.execute("DELETE FROM attachments WHERE id = ?1;", params![old_cid])
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
     tx.execute(
         "UPDATE cards SET title = ?1, description = ?2, due_date = ?3, is_due_complete = ?4, cover_attachment_id = ?5, updated_at = ?6 WHERE id = ?7;",
         params![new_title, new_desc, new_due, new_comp as i32, new_cover, now, id],
@@ -595,6 +624,13 @@ pub fn update_card(
     }
 
     tx.commit().map_err(|e| e.to_string())?;
+
+    if let Some(old_fname) = old_stored_file_to_remove {
+        if let Ok(old_path) = safe_resolve_attachment_path(&old_fname) {
+            let _ = std::fs::remove_file(old_path);
+        }
+    }
+
     build_card_response(&conn, &id)
 }
 
@@ -730,18 +766,18 @@ pub fn copy_card(id: String, target_list_id: Option<String>) -> Result<CardRespo
     let mut new_cover_id = None;
     {
         let mut att_stmt = tx
-            .prepare("SELECT id, filename, stored_filename, file_size, mime_type FROM attachments WHERE card_id = ?1;")
+            .prepare("SELECT id, filename, stored_filename, file_size, mime_type, is_cover FROM attachments WHERE card_id = ?1;")
             .map_err(|e| e.to_string())?;
 
-        let atts: Vec<(String, String, String, i64, Option<String>)> = att_stmt
+        let atts: Vec<(String, String, String, i64, Option<String>, i32)> = att_stmt
             .query_map(params![&id], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?))
             })
             .map_err(|e| e.to_string())?
             .filter_map(|r| r.ok())
             .collect();
 
-        for (old_aid, fname, stored_fname, fsize, mime) in atts {
+        for (old_aid, fname, stored_fname, fsize, mime, is_cover) in atts {
             let ext = Path::new(&stored_fname)
                 .extension()
                 .and_then(|s| s.to_str())
@@ -760,9 +796,9 @@ pub fn copy_card(id: String, target_list_id: Option<String>) -> Result<CardRespo
 
             let new_aid = Uuid::new_v4().to_string();
             tx.execute(
-                "INSERT INTO attachments (id, card_id, filename, stored_filename, file_size, mime_type, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
-                params![new_aid, new_card_id, fname, new_stored, fsize, mime, now],
+                "INSERT INTO attachments (id, card_id, filename, stored_filename, file_size, mime_type, is_cover, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);",
+                params![new_aid, new_card_id, fname, new_stored, fsize, mime, is_cover, now],
             )
             .map_err(|e| e.to_string())?;
 
@@ -1195,16 +1231,19 @@ pub fn upload_attachment(
     }
 
     let conn = get_connection().map_err(|e| e.to_string())?;
-    let card_info: Option<(Option<String>,)> = conn
+    let card_exists: bool = conn
         .query_row(
-            "SELECT cover_attachment_id FROM cards WHERE id = ?1;",
+            "SELECT 1 FROM cards WHERE id = ?1;",
             params![&card_id],
-            |r| Ok((r.get(0)?,)),
+            |_| Ok(true),
         )
         .optional()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())?
+        .unwrap_or(false);
 
-    let cover_id = card_info.ok_or("Card not found")?.0;
+    if !card_exists {
+        return Err("Card not found".to_string());
+    }
 
     let ext = Path::new(&filename)
         .extension()
@@ -1227,18 +1266,11 @@ pub fn upload_attachment(
     let file_size = data.len() as i64;
 
     conn.execute(
-        "INSERT INTO attachments (id, card_id, filename, stored_filename, file_size, mime_type, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+        "INSERT INTO attachments (id, card_id, filename, stored_filename, file_size, mime_type, is_cover, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7);",
         params![attach_id, card_id, filename, stored_filename, file_size, mime_type, now],
     )
     .map_err(|e| e.to_string())?;
-
-    if cover_id.is_none() && mime_type.starts_with("image/") && mime_type != "image/svg+xml" {
-        let _ = conn.execute(
-            "UPDATE cards SET cover_attachment_id = ?1 WHERE id = ?2;",
-            params![attach_id, card_id],
-        );
-    }
 
     Ok(AttachmentResponse {
         id: attach_id,
@@ -1249,6 +1281,100 @@ pub fn upload_attachment(
         mime_type: Some(mime_type),
         created_at: now,
     })
+}
+
+#[tauri::command]
+pub fn upload_card_cover(
+    card_id: String,
+    filename: String,
+    mime_type: String,
+    data: Vec<u8>,
+) -> Result<CardResponse, String> {
+    if data.len() > MAX_UPLOAD_SIZE {
+        return Err("File size exceeds 50MB limit".to_string());
+    }
+
+    if !mime_type.starts_with("image/") || mime_type == "image/svg+xml" {
+        return Err("Only raster image files (JPEG, PNG, WebP, etc.) are allowed for covers".to_string());
+    }
+
+    let mut conn = get_connection().map_err(|e| e.to_string())?;
+
+    let card_info: Option<(Option<String>,)> = conn
+        .query_row(
+            "SELECT cover_attachment_id FROM cards WHERE id = ?1;",
+            params![&card_id],
+            |r| Ok((r.get(0)?,)),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+
+    let existing_cover_id = card_info.ok_or("Card not found")?.0;
+
+    let ext = Path::new(&filename)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    let stored_filename = if ext.is_empty() {
+        Uuid::new_v4().simple().to_string()
+    } else {
+        format!("{}.{}", Uuid::new_v4().simple(), ext)
+    };
+
+    let target_path = safe_resolve_attachment_path(&stored_filename)?;
+    if let Some(parent) = target_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    std::fs::write(&target_path, &data).map_err(|e| e.to_string())?;
+
+    let attach_id = Uuid::new_v4().to_string();
+    let now = Utc::now().to_rfc3339();
+    let file_size = data.len() as i64;
+
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    let mut old_stored_file_to_remove: Option<String> = None;
+    if let Some(ref old_cover_id) = existing_cover_id {
+        let old_att_info: Option<(String, i32)> = tx
+            .query_row(
+                "SELECT stored_filename, is_cover FROM attachments WHERE id = ?1;",
+                params![old_cover_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+
+        if let Some((old_stored, is_cover)) = old_att_info {
+            if is_cover == 1 {
+                old_stored_file_to_remove = Some(old_stored);
+                tx.execute("DELETE FROM attachments WHERE id = ?1;", params![old_cover_id])
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    tx.execute(
+        "INSERT INTO attachments (id, card_id, filename, stored_filename, file_size, mime_type, is_cover, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, ?7);",
+        params![attach_id, card_id, filename, stored_filename, file_size, mime_type, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.execute(
+        "UPDATE cards SET cover_attachment_id = ?1, updated_at = ?2 WHERE id = ?3;",
+        params![attach_id, now, card_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
+
+    if let Some(old_fname) = old_stored_file_to_remove {
+        if let Ok(old_path) = safe_resolve_attachment_path(&old_fname) {
+            let _ = std::fs::remove_file(old_path);
+        }
+    }
+
+    build_card_response(&conn, &card_id)
 }
 
 #[tauri::command]

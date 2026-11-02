@@ -222,6 +222,7 @@ pub fn run() {
             commands::update_label,
             commands::delete_label,
             commands::upload_attachment,
+            commands::upload_card_cover,
             commands::delete_attachment,
             commands::save_attachment_as,
             commands::get_system_status,
@@ -682,5 +683,85 @@ mod tests {
         assert!(commands::restore_from_internal_backup("../evil.db".into()).is_err());
         assert!(commands::restore_from_internal_backup("sub/evil.db".into()).is_err());
         assert!(commands::restore_from_internal_backup("..\\evil.db".into()).is_err());
+    }
+
+    // 14. カバー画像の独立設定 & ライフサイクル（添付自動設定廃止・除外・実体クリーンアップ）検証
+    #[test]
+    fn test_independent_cover_upload_and_lifecycle() {
+        let _env = TestEnv::new();
+        let list = commands::create_list("カバーテストリスト".into(), None).unwrap();
+        let card = commands::create_card(list.id.clone(), "カバー検証カード".into(), None, None).unwrap();
+
+        // 1. 通常画像を添付しても自動でカバーに設定されないこと
+        let normal_att = commands::upload_attachment(
+            card.id.clone(),
+            "normal.png".into(),
+            "image/png".into(),
+            b"normal png content".to_vec(),
+        ).unwrap();
+        let card_after_att = commands::get_card(card.id.clone()).unwrap();
+        assert!(card_after_att.cover_attachment_id.is_none(), "通常の画像添付でカバーが自動設定されてはならない");
+        assert_eq!(card_after_att.attachments.len(), 1);
+        assert_eq!(card_after_att.attachments[0].id, normal_att.id);
+
+        // 2. upload_card_cover でカバー専用画像を設定
+        let card_with_cover = commands::upload_card_cover(
+            card.id.clone(),
+            "cover1.png".into(),
+            "image/png".into(),
+            b"cover 1 png content".to_vec(),
+        ).unwrap();
+        let cover1_id = card_with_cover.cover_attachment_id.clone().expect("カバーIDが設定されること");
+        // 添付ファイル一覧にはカバー画像が含まれないこと
+        assert_eq!(card_with_cover.attachments.len(), 1, "カバー画像は通常の添付ファイル一覧に含まれないこと");
+        assert_eq!(card_with_cover.attachments[0].id, normal_att.id);
+
+        // カバー画像の実体ファイルパスを確認
+        let conn = db::get_connection().unwrap();
+        let cover1_stored: String = conn.query_row(
+            "SELECT stored_filename FROM attachments WHERE id = ?1;",
+            params![&cover1_id],
+            |r| r.get(0),
+        ).unwrap();
+        let cover1_file_path = config::safe_resolve_attachment_path(&cover1_stored).unwrap();
+        assert!(cover1_file_path.exists(), "カバー画像1の実体ファイルが存在すること");
+
+        // 3. 別のカバー画像で差し替え (旧カバー画像の実体が削除されること)
+        let card_with_cover2 = commands::upload_card_cover(
+            card.id.clone(),
+            "cover2.png".into(),
+            "image/png".into(),
+            b"cover 2 png content".to_vec(),
+        ).unwrap();
+        let cover2_id = card_with_cover2.cover_attachment_id.clone().expect("新しいカバーIDが設定されること");
+        assert_ne!(cover1_id, cover2_id);
+        assert!(!cover1_file_path.exists(), "差し替えにより旧カバー実体ファイルが削除されること");
+
+        let cover2_stored: String = conn.query_row(
+            "SELECT stored_filename FROM attachments WHERE id = ?1;",
+            params![&cover2_id],
+            |r| r.get(0),
+        ).unwrap();
+        let cover2_file_path = config::safe_resolve_attachment_path(&cover2_stored).unwrap();
+        assert!(cover2_file_path.exists(), "新カバー実体ファイルが存在すること");
+
+        // 4. clear_cover でカバーを解除 (新カバー画像の実体もクリーンアップされること)
+        let card_cleared = commands::update_card(
+            card.id.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(true),
+            None,
+        ).unwrap();
+        assert!(card_cleared.cover_attachment_id.is_none(), "カバーが解除されていること");
+        assert!(!cover2_file_path.exists(), "カバー解除により専用カバー実体ファイルが削除されること");
+        // 通常の添付ファイルは残っていること
+        let normal_file_path = config::safe_resolve_attachment_path(&normal_att.stored_filename).unwrap();
+        assert!(normal_file_path.exists(), "通常の添付ファイル実体は保護されていること");
+        assert_eq!(card_cleared.attachments.len(), 1);
     }
 }

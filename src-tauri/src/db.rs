@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::config::{get_attachments_dir, get_db_path, init_dirs};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 2;
+pub const CURRENT_SCHEMA_VERSION: i32 = 3;
 
 pub fn get_connection() -> Result<Connection> {
     let db_path = get_db_path();
@@ -83,6 +83,7 @@ pub fn init_database() -> Result<()> {
             stored_filename TEXT NOT NULL UNIQUE,
             file_size INTEGER NOT NULL,
             mime_type TEXT,
+            is_cover INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
         );",
     )?;
@@ -97,6 +98,18 @@ pub fn init_database() -> Result<()> {
             .any(|col| col == "color");
         if !has_color {
             tx.execute_batch("ALTER TABLE lists ADD COLUMN color TEXT;")?;
+        }
+    }
+
+    // 1.2 マイグレーション (v2 -> v3: attachments.is_cover カラム追加)
+    if user_version < 3 {
+        let has_is_cover: bool = tx
+            .prepare("PRAGMA table_info(attachments);")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .flatten()
+            .any(|col| col == "is_cover");
+        if !has_is_cover {
+            tx.execute_batch("ALTER TABLE attachments ADD COLUMN is_cover INTEGER NOT NULL DEFAULT 0;")?;
         }
     }
 

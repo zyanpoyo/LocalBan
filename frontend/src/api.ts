@@ -228,6 +228,27 @@ export async function deleteLabel(id: string): Promise<void> {
 }
 
 // Attachments
+export async function uploadCardCover(cardId: string, file: File): Promise<Card> {
+  updateStatus('saving');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = Array.from(new Uint8Array(arrayBuffer));
+    const card = await invoke<Card>('upload_card_cover', {
+      cardId,
+      filename: file.name,
+      mimeType: file.type || 'image/png',
+      data: bytes,
+    });
+    updateStatus('saved');
+    notifySync('UPDATE_CARD');
+    return card;
+  } catch (err: any) {
+    updateStatus('error');
+    const message = typeof err === 'string' ? err : err?.message || 'カバー画像のアップロードに失敗しました';
+    throw new Error(message);
+  }
+}
+
 export async function uploadAttachment(cardId: string, file: File): Promise<Attachment> {
   updateStatus('saving');
   try {
