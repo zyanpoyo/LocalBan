@@ -5,99 +5,13 @@ import {
   EditorView,
   ViewPlugin,
   ViewUpdate,
-  WidgetType,
 } from '@codemirror/view';
-import { isolateHistory } from '@codemirror/commands';
 import { openExternalUrl } from '../../api';
-
-/**
- * タスクリスト (- [ ] / - [x]) のインタラクティブ・チェックボックス Widget
- */
-class TaskCheckboxWidget extends WidgetType {
-  constructor(
-    readonly checked: boolean,
-    readonly bracketPos: number // '[' のドキュメント内絶対位置
-  ) {
-    super();
-  }
-
-  eq(other: TaskCheckboxWidget): boolean {
-    return this.checked === other.checked && this.bracketPos === other.bracketPos;
-  }
-
-  toDOM(view: EditorView): HTMLElement {
-    const wrapper = document.createElement('span');
-    wrapper.className = 'cm-lp-task-widget';
-
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = this.checked;
-    input.className = 'cm-lp-task-checkbox';
-    input.title = this.checked ? '未完了に戻す' : '完了にする';
-
-    // クリック時にキャレット移動による生テキスト化を防ぎつつ、[ ] ⇄ [x] をトグルする
-    input.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const targetFrom = this.bracketPos;
-      const targetTo = this.bracketPos + 3; // "[ ]" or "[x]"
-      const currentSlice = view.state.doc.sliceString(targetFrom, targetTo);
-      if (/^\[[ xX]\]$/.test(currentSlice)) {
-        const nextStr = this.checked ? '[ ]' : '[x]';
-        view.dispatch({
-          changes: { from: targetFrom, to: targetTo, insert: nextStr },
-          userEvent: 'input.toggle-task',
-          annotations: isolateHistory.of('full'),
-        });
-      }
-    });
-
-    wrapper.appendChild(input);
-    return wrapper;
-  }
-
-  ignoreEvent(): boolean {
-    return true;
-  }
-}
-
-/**
- * 順不同リスト (- / * / +) のビュレット記号 Widget
- */
-class BulletPointWidget extends WidgetType {
-  toDOM(): HTMLElement {
-    const span = document.createElement('span');
-    span.className = 'cm-lp-bullet-widget';
-    span.textContent = '• ';
-    return span;
-  }
-
-  eq(): boolean {
-    return true;
-  }
-}
-
-/**
- * リンク末尾の外部遷移アイコン Widget
- */
-class LinkIconWidget extends WidgetType {
-  constructor(readonly url: string) {
-    super();
-  }
-
-  eq(other: LinkIconWidget): boolean {
-    return this.url === other.url;
-  }
-
-  toDOM(): HTMLElement {
-    const span = document.createElement('span');
-    span.className = 'cm-lp-link-icon';
-    span.textContent = ' ↗';
-    span.title = `${this.url} を開く`;
-    span.dataset.lpUrl = this.url;
-    return span;
-  }
-}
+import {
+  TaskCheckboxWidget,
+  BulletPointWidget,
+  LinkIconWidget,
+} from './livePreviewWidgets';
 
 interface PendingDeco {
   from: number;
@@ -155,40 +69,49 @@ function collectInlineDecorations(
   // contentStartOffset より手前（行頭マーカー領域）はインライン解析対象外とする
   markOccupied(0, contentStartOffset);
 
+  // 対称デリミタ（`code`, ***bold-italic***, **bold**, ~~strike~~, *italic*）の共通装飾ヘルパー
+  const applySymmetricDelimiterDeco = (
+    regex: RegExp,
+    getDelimLen: (m: RegExpExecArray) => number,
+    markClass: string
+  ) => {
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(lineText)) !== null) {
+      const fullStart = match.index;
+      const fullEnd = fullStart + match[0].length;
+      if (!isRangeFree(fullStart, fullEnd)) continue;
+
+      const delimLen = getDelimLen(match);
+      const innerStart = fullStart + delimLen;
+      const innerEnd = fullEnd - delimLen;
+      if (innerStart >= innerEnd) continue;
+
+      out.push({
+        from: lineFrom + fullStart,
+        to: lineFrom + innerStart,
+        deco: Decoration.replace({}),
+      });
+      out.push({
+        from: lineFrom + innerStart,
+        to: lineFrom + innerEnd,
+        deco: Decoration.mark({ class: markClass }),
+      });
+      out.push({
+        from: lineFrom + innerEnd,
+        to: lineFrom + fullEnd,
+        deco: Decoration.replace({}),
+      });
+
+      markOccupied(fullStart, fullEnd);
+    }
+  };
+
   // 1. インラインコード: `code` または ``code``
-  const codeRegex = /(`+)([^`]+?)\1/g;
-  let match: RegExpExecArray | null;
-  while ((match = codeRegex.exec(lineText)) !== null) {
-    const fullStart = match.index;
-    const fullEnd = fullStart + match[0].length;
-    if (!isRangeFree(fullStart, fullEnd)) continue;
-
-    const tickLen = match[1].length;
-    const innerStart = fullStart + tickLen;
-    const innerEnd = fullEnd - tickLen;
-    if (innerStart >= innerEnd) continue;
-
-    out.push({
-      from: lineFrom + fullStart,
-      to: lineFrom + innerStart,
-      deco: Decoration.replace({}),
-    });
-    out.push({
-      from: lineFrom + innerStart,
-      to: lineFrom + innerEnd,
-      deco: Decoration.mark({ class: 'cm-lp-inline-code' }),
-    });
-    out.push({
-      from: lineFrom + innerEnd,
-      to: lineFrom + fullEnd,
-      deco: Decoration.replace({}),
-    });
-
-    markOccupied(fullStart, fullEnd);
-  }
+  applySymmetricDelimiterDeco(/(`+)([^`]+?)\1/g, (m) => m[1].length, 'cm-lp-inline-code');
 
   // 2. リンク: [title](url) （画像 ![alt](url) は除く）
   const linkRegex = /(?<!\!)\[([^\]]+)\]\((https?:\/\/[^\s)]+|[^\s)]+)\)/g;
+  let match: RegExpExecArray | null;
   while ((match = linkRegex.exec(lineText)) !== null) {
     const fullStart = match.index;
     const fullEnd = fullStart + match[0].length;
@@ -230,112 +153,16 @@ function collectInlineDecorations(
   }
 
   // 3. 太字 + 斜体: ***text***
-  const boldItalicRegex = /(\*\*\*)([^*]+?)(\*\*\*)/g;
-  while ((match = boldItalicRegex.exec(lineText)) !== null) {
-    const fullStart = match.index;
-    const fullEnd = fullStart + match[0].length;
-    if (!isRangeFree(fullStart, fullEnd)) continue;
-
-    const innerStart = fullStart + 3;
-    const innerEnd = fullEnd - 3;
-    out.push({
-      from: lineFrom + fullStart,
-      to: lineFrom + innerStart,
-      deco: Decoration.replace({}),
-    });
-    out.push({
-      from: lineFrom + innerStart,
-      to: lineFrom + innerEnd,
-      deco: Decoration.mark({ class: 'cm-lp-bold cm-lp-italic' }),
-    });
-    out.push({
-      from: lineFrom + innerEnd,
-      to: lineFrom + fullEnd,
-      deco: Decoration.replace({}),
-    });
-    markOccupied(fullStart, fullEnd);
-  }
+  applySymmetricDelimiterDeco(/(\*\*\*)([^*]+?)(\*\*\*)/g, () => 3, 'cm-lp-bold cm-lp-italic');
 
   // 4. 太字: **text** または __text__
-  const boldRegex = /(\*\*|__)((?:(?!\1).)+?)\1/g;
-  while ((match = boldRegex.exec(lineText)) !== null) {
-    const fullStart = match.index;
-    const fullEnd = fullStart + match[0].length;
-    if (!isRangeFree(fullStart, fullEnd)) continue;
-
-    const innerStart = fullStart + 2;
-    const innerEnd = fullEnd - 2;
-    out.push({
-      from: lineFrom + fullStart,
-      to: lineFrom + innerStart,
-      deco: Decoration.replace({}),
-    });
-    out.push({
-      from: lineFrom + innerStart,
-      to: lineFrom + innerEnd,
-      deco: Decoration.mark({ class: 'cm-lp-bold' }),
-    });
-    out.push({
-      from: lineFrom + innerEnd,
-      to: lineFrom + fullEnd,
-      deco: Decoration.replace({}),
-    });
-    markOccupied(fullStart, fullEnd);
-  }
+  applySymmetricDelimiterDeco(/(\*\*|__)((?:(?!\1).)+?)\1/g, () => 2, 'cm-lp-bold');
 
   // 5. 打ち消し線: ~~text~~
-  const strikeRegex = /(~~)((?:(?!~~).)+?)(~~)/g;
-  while ((match = strikeRegex.exec(lineText)) !== null) {
-    const fullStart = match.index;
-    const fullEnd = fullStart + match[0].length;
-    if (!isRangeFree(fullStart, fullEnd)) continue;
-
-    const innerStart = fullStart + 2;
-    const innerEnd = fullEnd - 2;
-    out.push({
-      from: lineFrom + fullStart,
-      to: lineFrom + innerStart,
-      deco: Decoration.replace({}),
-    });
-    out.push({
-      from: lineFrom + innerStart,
-      to: lineFrom + innerEnd,
-      deco: Decoration.mark({ class: 'cm-lp-strikethrough' }),
-    });
-    out.push({
-      from: lineFrom + innerEnd,
-      to: lineFrom + fullEnd,
-      deco: Decoration.replace({}),
-    });
-    markOccupied(fullStart, fullEnd);
-  }
+  applySymmetricDelimiterDeco(/(~~)((?:(?!~~).)+?)(~~)/g, () => 2, 'cm-lp-strikethrough');
 
   // 6. 斜体: *text* （前後に * がない単一アスタリスク）
-  const italicRegex = /(?<!\*)\*([^*\s][^*]*?)\*(?!\*)/g;
-  while ((match = italicRegex.exec(lineText)) !== null) {
-    const fullStart = match.index;
-    const fullEnd = fullStart + match[0].length;
-    if (!isRangeFree(fullStart, fullEnd)) continue;
-
-    const innerStart = fullStart + 1;
-    const innerEnd = fullEnd - 1;
-    out.push({
-      from: lineFrom + fullStart,
-      to: lineFrom + innerStart,
-      deco: Decoration.replace({}),
-    });
-    out.push({
-      from: lineFrom + innerStart,
-      to: lineFrom + innerEnd,
-      deco: Decoration.mark({ class: 'cm-lp-italic' }),
-    });
-    out.push({
-      from: lineFrom + innerEnd,
-      to: lineFrom + fullEnd,
-      deco: Decoration.replace({}),
-    });
-    markOccupied(fullStart, fullEnd);
-  }
+  applySymmetricDelimiterDeco(/(?<!\*)\*([^*\s][^*]*?)\*(?!\*)/g, () => 1, 'cm-lp-italic');
 }
 
 /**

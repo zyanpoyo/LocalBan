@@ -42,6 +42,74 @@ interface MarkdownLiveEditorProps {
 }
 
 /**
+ * 選択範囲の行に対して箇条書き・タスクリストの行頭プレフィックスをトグル適用する共通ヘルパー
+ */
+function toggleLineListPrefix(
+  view: EditorView,
+  options: {
+    prefix: string;
+    emptyLineDefault: string;
+    samePrefixRegex: RegExp;
+    otherPrefixRegex: RegExp;
+    userEvent: string;
+  }
+): void {
+  const { state } = view;
+  const sel = state.selection.main;
+  const start = sel.from;
+  const end = sel.to;
+  const fromLine = state.doc.lineAt(start);
+  const toLine = state.doc.lineAt(end);
+  const changes: { from: number; to: number; insert: string }[] = [];
+
+  for (let l = fromLine.number; l <= toLine.number; l++) {
+    const line = state.doc.line(l);
+    const text = line.text;
+    const indentMatch = text.match(/^(\s*)/);
+    const indent = indentMatch ? indentMatch[1] : '';
+    const textWithoutIndent = text.slice(indent.length);
+
+    if (textWithoutIndent.trim().length === 0 && start === end) {
+      changes.push({
+        from: line.from,
+        to: line.to,
+        insert: `${indent}${options.emptyLineDefault}`,
+      });
+    } else if (options.samePrefixRegex.test(textWithoutIndent)) {
+      const m = textWithoutIndent.match(options.samePrefixRegex)!;
+      changes.push({
+        from: line.from + indent.length,
+        to: line.from + indent.length + m[0].length,
+        insert: '',
+      });
+    } else {
+      const otherMatch = textWithoutIndent.match(options.otherPrefixRegex);
+      if (otherMatch) {
+        changes.push({
+          from: line.from + indent.length,
+          to: line.from + indent.length + otherMatch[0].length,
+          insert: options.prefix,
+        });
+      } else {
+        changes.push({
+          from: line.from + indent.length,
+          to: line.from + indent.length,
+          insert: options.prefix,
+        });
+      }
+    }
+  }
+
+  view.dispatch({
+    changes,
+    userEvent: options.userEvent,
+    annotations: isolateHistory.of('full'),
+    scrollIntoView: true,
+  });
+  view.focus();
+}
+
+/**
  * CodeMirror 6 上でインライン・ブロック装飾コマンドを Atomic Transaction として実行する
  */
 function executeMarkdownFormat(view: EditorView, type: MarkdownFormatType): void {
@@ -142,116 +210,24 @@ function executeMarkdownFormat(view: EditorView, type: MarkdownFormatType): void
       }
       break;
     }
-    case 'bullet-list': {
-      // 箇条書きリスト (- 項目) のトグル
-      const fromLine = state.doc.lineAt(start);
-      const toLine = state.doc.lineAt(end);
-      const changes: { from: number; to: number; insert: string }[] = [];
-
-      for (let l = fromLine.number; l <= toLine.number; l++) {
-        const line = state.doc.line(l);
-        const text = line.text;
-        const indentMatch = text.match(/^(\s*)/);
-        const indent = indentMatch ? indentMatch[1] : '';
-        const textWithoutIndent = text.slice(indent.length);
-
-        if (textWithoutIndent.trim().length === 0 && start === end) {
-          changes.push({
-            from: line.from,
-            to: line.to,
-            insert: `${indent}- リスト項目`,
-          });
-        } else if (/^[-*+]\s+(?!\[[ xX]\])/.test(textWithoutIndent)) {
-          // 既に箇条書きの場合は解除
-          const m = textWithoutIndent.match(/^[-*+]\s+/)!;
-          changes.push({
-            from: line.from + indent.length,
-            to: line.from + indent.length + m[0].length,
-            insert: '',
-          });
-        } else {
-          // タスクリストや順序付きリストがある場合は置換、なければ行頭に挿入
-          const otherMatch = textWithoutIndent.match(/^([-*+]\s+\[[ xX]\]\s+|\d+\.\s+)/);
-          if (otherMatch) {
-            changes.push({
-              from: line.from + indent.length,
-              to: line.from + indent.length + otherMatch[0].length,
-              insert: '- ',
-            });
-          } else {
-            changes.push({
-              from: line.from + indent.length,
-              to: line.from + indent.length,
-              insert: '- ',
-            });
-          }
-        }
-      }
-
-      view.dispatch({
-        changes,
+    case 'bullet-list':
+      toggleLineListPrefix(view, {
+        prefix: '- ',
+        emptyLineDefault: '- リスト項目',
+        samePrefixRegex: /^[-*+]\s+(?!\[[ xX]\])/,
+        otherPrefixRegex: /^([-*+]\s+\[[ xX]\]\s+|\d+\.\s+)/,
         userEvent: 'input.format.bullet',
-        annotations: isolateHistory.of('full'),
-        scrollIntoView: true,
       });
-      view.focus();
       break;
-    }
-    case 'task-list': {
-      // タスクリスト (- [ ] タスク) のトグル
-      const fromLine = state.doc.lineAt(start);
-      const toLine = state.doc.lineAt(end);
-      const changes: { from: number; to: number; insert: string }[] = [];
-
-      for (let l = fromLine.number; l <= toLine.number; l++) {
-        const line = state.doc.line(l);
-        const text = line.text;
-        const indentMatch = text.match(/^(\s*)/);
-        const indent = indentMatch ? indentMatch[1] : '';
-        const textWithoutIndent = text.slice(indent.length);
-
-        if (textWithoutIndent.trim().length === 0 && start === end) {
-          changes.push({
-            from: line.from,
-            to: line.to,
-            insert: `${indent}- [ ] タスク`,
-          });
-        } else if (/^[-*+]\s+\[[ xX]\]\s+/.test(textWithoutIndent)) {
-          // 既にタスクリストの場合は解除
-          const m = textWithoutIndent.match(/^[-*+]\s+\[[ xX]\]\s+/)!;
-          changes.push({
-            from: line.from + indent.length,
-            to: line.from + indent.length + m[0].length,
-            insert: '',
-          });
-        } else {
-          // 箇条書きや順序付きリストがある場合は置換、なければ行頭に挿入
-          const otherMatch = textWithoutIndent.match(/^([-*+]\s+|\d+\.\s+)/);
-          if (otherMatch) {
-            changes.push({
-              from: line.from + indent.length,
-              to: line.from + indent.length + otherMatch[0].length,
-              insert: '- [ ] ',
-            });
-          } else {
-            changes.push({
-              from: line.from + indent.length,
-              to: line.from + indent.length,
-              insert: '- [ ] ',
-            });
-          }
-        }
-      }
-
-      view.dispatch({
-        changes,
+    case 'task-list':
+      toggleLineListPrefix(view, {
+        prefix: '- [ ] ',
+        emptyLineDefault: '- [ ] タスク',
+        samePrefixRegex: /^[-*+]\s+\[[ xX]\]\s+/,
+        otherPrefixRegex: /^([-*+]\s+|\d+\.\s+)/,
         userEvent: 'input.format.task',
-        annotations: isolateHistory.of('full'),
-        scrollIntoView: true,
       });
-      view.focus();
       break;
-    }
     case 'note-info':
       applyBlockWrapper(':::note info', ':::', 'インフォメーション');
       break;
@@ -435,7 +411,6 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
       const state = EditorState.create({
         doc: value,
         extensions: [
-          // 要件 2.3.1: 連続した文字入力を 500ms 単位でグループ化
           history({ minDepth: 150, newGroupDelay: 500 }),
           shortcutKeymap,
           smartTypingExtension(),
@@ -465,11 +440,9 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
         view.destroy();
         viewRef.current = null;
       };
-      // cardId が切り替わった時のみエディタインスタンスを再生成する
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cardId]);
 
-    // 外部要因（ドラフト復元や「変更を破棄」など）で value が現在のエディタ内容と乖離した場合のみ同期
     useEffect(() => {
       const view = viewRef.current;
       if (!view) return;

@@ -1,6 +1,6 @@
 use chrono::Utc;
 use rusqlite::{params, Connection, Result};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use crate::config::{get_attachments_dir, get_db_path, init_dirs};
@@ -17,13 +17,7 @@ pub fn get_connection() -> Result<Connection> {
     Ok(conn)
 }
 
-pub fn init_database() -> Result<()> {
-    let _ = init_dirs();
-    let mut conn = get_connection()?;
-
-    let tx = conn.transaction()?;
-
-    // 1. テーブル作成
+fn create_tables(tx: &Connection) -> Result<()> {
     tx.execute_batch(
         "CREATE TABLE IF NOT EXISTS lists (
             id TEXT PRIMARY KEY,
@@ -86,10 +80,15 @@ pub fn init_database() -> Result<()> {
             is_cover INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
         );",
-    )?;
+    )
+}
 
-    // 1.1 マイグレーション (v1 -> v2: lists.color カラム追加)
-    let user_version: i32 = tx.query_row("PRAGMA user_version;", [], |r| r.get(0)).unwrap_or(0);
+fn run_migrations(tx: &Connection) -> Result<()> {
+    let user_version: i32 = tx
+        .query_row("PRAGMA user_version;", [], |r| r.get(0))
+        .unwrap_or(0);
+
+    // v1 -> v2: lists.color カラム追加
     if user_version < 2 {
         let has_color: bool = tx
             .prepare("PRAGMA table_info(lists);")?
@@ -101,7 +100,7 @@ pub fn init_database() -> Result<()> {
         }
     }
 
-    // 1.2 マイグレーション (v2 -> v3: attachments.is_cover カラム追加)
+    // v2 -> v3: attachments.is_cover カラム追加
     if user_version < 3 {
         let has_is_cover: bool = tx
             .prepare("PRAGMA table_info(attachments);")?
@@ -109,11 +108,17 @@ pub fn init_database() -> Result<()> {
             .flatten()
             .any(|col| col == "is_cover");
         if !has_is_cover {
-            tx.execute_batch("ALTER TABLE attachments ADD COLUMN is_cover INTEGER NOT NULL DEFAULT 0;")?;
+            tx.execute_batch(
+                "ALTER TABLE attachments ADD COLUMN is_cover INTEGER NOT NULL DEFAULT 0;",
+            )?;
         }
     }
 
-    // 2. 初期ラベル投入 (未登録の場合のみ)
+    Ok(())
+}
+
+fn seed_initial_data(tx: &Connection) -> Result<()> {
+    // 1. 初期ラベル投入 (未登録の場合のみ)
     let label_count: i64 = tx.query_row("SELECT COUNT(*) FROM labels;", [], |r| r.get(0))?;
     if label_count == 0 {
         let preset_labels = [
@@ -132,7 +137,7 @@ pub fn init_database() -> Result<()> {
         }
     }
 
-    // 3. 新規DBの場合、サンプルカンバンリストを作成（ToDo, 進行中, 完了）および初期カードを投入
+    // 2. 新規DBの場合、サンプルカンバンリスト（ToDo, 進行中, 完了）および初期カードを投入
     let list_count: i64 = tx.query_row("SELECT COUNT(*) FROM lists;", [], |r| r.get(0))?;
     if list_count == 0 {
         let now = Utc::now().to_rfc3339();
@@ -154,10 +159,11 @@ pub fn init_database() -> Result<()> {
         )?;
 
         // ラベルIDマップ取得
-        let mut label_map = std::collections::HashMap::new();
+        let mut label_map = HashMap::new();
         {
             let mut stmt = tx.prepare("SELECT id, name FROM labels;")?;
-            let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(1)?, r.get::<_, String>(0)?)))?;
+            let rows =
+                stmt.query_map([], |r| Ok((r.get::<_, String>(1)?, r.get::<_, String>(0)?)))?;
             for row in rows {
                 let (name, id) = row?;
                 label_map.insert(name, id);
@@ -214,17 +220,38 @@ pub fn init_database() -> Result<()> {
 
         // ラベル紐付け
         if let Some(lid) = label_map.get("アイデア") {
-            tx.execute("INSERT INTO card_labels (card_id, label_id) VALUES (?1, ?2);", params![&card_todo_id, lid])?;
+            tx.execute(
+                "INSERT INTO card_labels (card_id, label_id) VALUES (?1, ?2);",
+                params![&card_todo_id, lid],
+            )?;
         }
         if let Some(lid) = label_map.get("優先度: 中") {
-            tx.execute("INSERT INTO card_labels (card_id, label_id) VALUES (?1, ?2);", params![&card_doing_id, lid])?;
+            tx.execute(
+                "INSERT INTO card_labels (card_id, label_id) VALUES (?1, ?2);",
+                params![&card_doing_id, lid],
+            )?;
         }
         if let Some(lid) = label_map.get("優先度: 低") {
-            tx.execute("INSERT INTO card_labels (card_id, label_id) VALUES (?1, ?2);", params![&card_done_id, lid])?;
+            tx.execute(
+                "INSERT INTO card_labels (card_id, label_id) VALUES (?1, ?2);",
+                params![&card_done_id, lid],
+            )?;
         }
     }
 
-    // 4. バージョン記録
+    Ok(())
+}
+
+pub fn init_database() -> Result<()> {
+    let _ = init_dirs();
+    let mut conn = get_connection()?;
+
+    let tx = conn.transaction()?;
+
+    create_tables(&tx)?;
+    run_migrations(&tx)?;
+    seed_initial_data(&tx)?;
+
     tx.execute_batch(&format!("PRAGMA user_version = {};", CURRENT_SCHEMA_VERSION))?;
     tx.commit()?;
 
