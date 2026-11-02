@@ -164,18 +164,11 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, onOpenCoa
           <div className="flex items-center gap-3">
             <button
               onClick={() =>
-                handleOpenExternal('https://github.com/zyanpoyo/LocalBan/blob/main/PRIVACY_POLICY.md')
+                handleOpenExternal('https://localban.pages.dev/privacy')
               }
               className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 underline underline-offset-2 cursor-pointer"
             >
               <span>Web版プライバシーポリシー</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => handleOpenExternal('https://github.com/zyanpoyo/LocalBan/issues')}
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-800 underline underline-offset-2 cursor-pointer"
-            >
-              <span>サポート・お問い合わせ (GitHub)</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>

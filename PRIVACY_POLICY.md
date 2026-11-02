@@ -35,7 +35,7 @@
 本プライバシーポリシーや本アプリに関するご質問・不具合報告は、以下の公式 GitHub リポジトリの Issue 窓口までご連絡ください。
 
 - **サポート窓口 (GitHub Issues)**: https://github.com/zyanpoyo/LocalBan/issues
-- **プライバシーポリシー公開 URL**: https://github.com/zyanpoyo/LocalBan/blob/main/PRIVACY_POLICY.md
+- **プライバシーポリシー公開 URL**: https://localban.pages.dev/privacy
 
 ---
 
@@ -66,4 +66,4 @@ You retain full control over your data at all times:
 If you have any questions regarding this Privacy Policy or the Application, please contact the developer via GitHub Issues:
 
 - **Support URL (GitHub Issues)**: https://github.com/zyanpoyo/LocalBan/issues
-- **Privacy Policy URL**: https://github.com/zyanpoyo/LocalBan/blob/main/PRIVACY_POLICY.md
+- **Privacy Policy URL**: https://localban.pages.dev/privacy
