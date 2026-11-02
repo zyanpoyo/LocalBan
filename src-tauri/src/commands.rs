@@ -525,8 +525,10 @@ pub fn update_card(
     title: Option<String>,
     description: Option<String>,
     due_date: Option<Option<String>>,
+    clear_due_date: Option<bool>,
     is_due_complete: Option<bool>,
     cover_attachment_id: Option<Option<String>>,
+    clear_cover: Option<bool>,
     label_ids: Option<Vec<String>>,
 ) -> Result<CardResponse, String> {
     let mut conn = get_connection().map_err(|e| e.to_string())?;
@@ -550,9 +552,27 @@ pub fn update_card(
 
     let new_title = title.map(|t| t.trim().to_string()).unwrap_or(existing.0);
     let new_desc = description.unwrap_or(existing.1);
-    let new_due = due_date.unwrap_or(existing.2);
+    let new_due = if clear_due_date == Some(true) {
+        None
+    } else if let Some(due_opt) = due_date {
+        match due_opt {
+            Some(d) if !d.trim().is_empty() => Some(d),
+            _ => None,
+        }
+    } else {
+        existing.2
+    };
     let new_comp = is_due_complete.unwrap_or(existing.3);
-    let new_cover = cover_attachment_id.unwrap_or(existing.4);
+    let new_cover = if clear_cover == Some(true) {
+        None
+    } else if let Some(cover_opt) = cover_attachment_id {
+        match cover_opt {
+            Some(c) if !c.trim().is_empty() => Some(c),
+            _ => None,
+        }
+    } else {
+        existing.4
+    };
     let now = Utc::now().to_rfc3339();
 
     let tx = conn.transaction().map_err(|e| e.to_string())?;

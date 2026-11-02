@@ -139,9 +139,11 @@ export async function updateCard(
     id,
     title: payload.title !== undefined ? payload.title : null,
     description: payload.description !== undefined ? payload.description : null,
-    dueDate: payload.due_date !== undefined ? payload.due_date : null,
+    dueDate: payload.due_date ?? null,
+    clearDueDate: payload.due_date === null,
     isDueComplete: payload.is_due_complete !== undefined ? payload.is_due_complete : null,
-    coverAttachmentId: payload.cover_attachment_id !== undefined ? payload.cover_attachment_id : null,
+    coverAttachmentId: payload.cover_attachment_id ?? null,
+    clearCover: payload.cover_attachment_id === null,
     labelIds: payload.label_ids !== undefined ? payload.label_ids : null,
   }, true);
   notifySync('UPDATE_CARD');

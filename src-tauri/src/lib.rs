@@ -437,23 +437,41 @@ mod tests {
 
         // 期限設定
         let due_iso = "2026-10-15T18:00:00.000Z".to_string();
-        let updated = commands::update_card(card.id.clone(), None, None, Some(Some(due_iso.clone())), Some(true), None, None).unwrap();
+        let updated = commands::update_card(card.id.clone(), None, None, Some(Some(due_iso.clone())), None, Some(true), None, None, None).unwrap();
         assert_eq!(updated.due_date.as_deref(), Some(due_iso.as_str()));
         assert!(updated.is_due_complete);
 
         // 期限解除 (Some(None) 送信)
-        let cleared = commands::update_card(card.id.clone(), None, None, Some(None), Some(false), None, None).unwrap();
+        let cleared = commands::update_card(card.id.clone(), None, None, Some(None), None, Some(false), None, None, None).unwrap();
         assert!(cleared.due_date.is_none());
         assert!(!cleared.is_due_complete);
 
         // カバー添付設定
         let att = commands::upload_attachment(card.id.clone(), "cover.png".into(), "image/png".into(), b"fake png".to_vec()).unwrap();
-        let with_cover = commands::update_card(card.id.clone(), None, None, None, None, Some(Some(att.id.clone())), None).unwrap();
+        let with_cover = commands::update_card(card.id.clone(), None, None, None, None, None, Some(Some(att.id.clone())), None, None).unwrap();
         assert_eq!(with_cover.cover_attachment_id.as_deref(), Some(att.id.as_str()));
 
         // カバー解除
-        let without_cover = commands::update_card(card.id.clone(), None, None, None, None, Some(None), None).unwrap();
+        let without_cover = commands::update_card(card.id.clone(), None, None, None, None, None, Some(None), None, None).unwrap();
         assert!(without_cover.cover_attachment_id.is_none());
+
+        // clear_due_date フラグによる解除検証
+        let re_due = commands::update_card(card.id.clone(), None, None, Some(Some(due_iso.clone())), None, None, None, None, None).unwrap();
+        assert_eq!(re_due.due_date.as_deref(), Some(due_iso.as_str()));
+        let flag_cleared = commands::update_card(card.id.clone(), None, None, None, Some(true), None, None, None, None).unwrap();
+        assert!(flag_cleared.due_date.is_none());
+
+        // 空文字列による期日クリア検証
+        let re_due2 = commands::update_card(card.id.clone(), None, None, Some(Some(due_iso.clone())), None, None, None, None, None).unwrap();
+        assert_eq!(re_due2.due_date.as_deref(), Some(due_iso.as_str()));
+        let empty_cleared = commands::update_card(card.id.clone(), None, None, Some(Some("   ".into())), None, None, None, None, None).unwrap();
+        assert!(empty_cleared.due_date.is_none());
+
+        // clear_cover フラグによる解除検証
+        let with_cover2 = commands::update_card(card.id.clone(), None, None, None, None, None, Some(Some(att.id.clone())), None, None).unwrap();
+        assert_eq!(with_cover2.cover_attachment_id.as_deref(), Some(att.id.as_str()));
+        let flag_cover_cleared = commands::update_card(card.id.clone(), None, None, None, None, None, None, Some(true), None).unwrap();
+        assert!(flag_cover_cleared.cover_attachment_id.is_none());
     }
 
     // 8. 添付ファイル50MB制限
