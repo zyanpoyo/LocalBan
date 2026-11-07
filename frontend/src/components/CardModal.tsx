@@ -13,6 +13,11 @@ import {
   uploadAttachment,
   uploadCardCover,
   deleteAttachment,
+  createEmptyAttachment,
+  renameAttachment,
+  openAttachment,
+  restoreAttachmentBackup,
+  onAttachmentUpdated,
 } from '../api';
 import {
   MarkdownLiveEditorHandle,
@@ -271,6 +276,60 @@ export const CardModal: React.FC<CardModalProps> = ({
   };
 
   // 添付ファイル削除
+
+  const handleCreateFile = async (extension: 'md' | 'txt') => {
+    try {
+      const att = await createEmptyAttachment(currentCard.id, extension);
+      const updated = {
+        ...currentCard,
+        attachments: [...currentCard.attachments, att],
+      };
+      setCurrentCard(updated);
+      onCardUpdated(updated);
+
+      // 作成直後に外部エディタを自動起動
+      await openAttachment(att.id);
+    } catch (err: any) {
+      alert(err.message || 'ファイル作成に失敗しました');
+    }
+  };
+
+  const handleRenameAttachment = async (attId: string, newFilename: string) => {
+    try {
+      const updatedAtt = await renameAttachment(attId, newFilename);
+      const updated = {
+        ...currentCard,
+        attachments: currentCard.attachments.map((a) => (a.id === attId ? updatedAtt : a)),
+      };
+      setCurrentCard(updated);
+      onCardUpdated(updated);
+    } catch (err: any) {
+      alert(err.message || '名前の変更に失敗しました');
+    }
+  };
+
+  const handleOpenAttachment = async (attId: string, editor?: string) => {
+    try {
+      await openAttachment(attId, editor);
+    } catch (err: any) {
+      alert(err.message || 'ファイルを開けませんでした');
+    }
+  };
+
+  const handleRestoreBackup = async (attId: string) => {
+    try {
+      const restoredAtt = await restoreAttachmentBackup(attId);
+      const updated = {
+        ...currentCard,
+        attachments: currentCard.attachments.map((a) => (a.id === attId ? restoredAtt : a)),
+      };
+      setCurrentCard(updated);
+      onCardUpdated(updated);
+    } catch (err: any) {
+      alert(err.message || '復元に失敗しました');
+    }
+  };
+
   const handleDeleteAttachment = async (attachmentId: string) => {
     await deleteAttachment(attachmentId);
     const updated = {
@@ -575,6 +634,10 @@ export const CardModal: React.FC<CardModalProps> = ({
             <CardAttachmentSection
               attachments={currentCard.attachments}
               onFileUpload={(files) => void handleFileUpload(files)}
+              onCreateFile={handleCreateFile}
+              onRenameAttachment={handleRenameAttachment}
+              onOpenAttachment={handleOpenAttachment}
+              onRestoreBackup={handleRestoreBackup}
               onDeleteAttachment={(attId) => void handleDeleteAttachment(attId)}
               onPreviewImage={(url) => setPreviewImageUrl(url)}
             />

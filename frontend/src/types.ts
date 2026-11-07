@@ -28,6 +28,7 @@ export interface Attachment {
   file_size: number;
   mime_type: string | null;
   created_at: string;
+  has_backup?: boolean;
 }
 
 export interface Card {
@@ -68,6 +69,7 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export interface AppSettings {
   close_to_tray: boolean;
   has_seen_coach_mark: boolean;
+  preferred_editor?: string | null;
 }
 
 export interface BackupFileInfo {

@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::config::{get_attachments_dir, get_db_path, init_dirs};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 3;
+pub const CURRENT_SCHEMA_VERSION: i32 = 4;
 
 pub fn get_connection() -> Result<Connection> {
     let db_path = get_db_path();
@@ -78,7 +78,8 @@ fn create_tables(tx: &Connection) -> Result<()> {
             file_size INTEGER NOT NULL,
             mime_type TEXT,
             is_cover INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            backup_stored_filename TEXT
         );",
     )
 }
@@ -113,6 +114,20 @@ fn run_migrations(tx: &Connection) -> Result<()> {
             )?;
         }
     }
+    // v3 -> v4: attachments.backup_stored_filename カラム追加
+    if user_version < 4 {
+        let has_backup_col: bool = tx
+            .prepare("PRAGMA table_info(attachments);")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .flatten()
+            .any(|col| col == "backup_stored_filename");
+        if !has_backup_col {
+            tx.execute_batch(
+                "ALTER TABLE attachments ADD COLUMN backup_stored_filename TEXT;",
+            )?;
+        }
+    }
+
 
     Ok(())
 }
@@ -312,7 +327,7 @@ pub fn cleanup_orphaned_attachments() {
 
     if let Ok(conn) = get_connection() {
         let mut registered = HashSet::new();
-        if let Ok(mut stmt) = conn.prepare("SELECT stored_filename FROM attachments;") {
+        if let Ok(mut stmt) = conn.prepare("SELECT stored_filename FROM attachments UNION SELECT backup_stored_filename FROM attachments WHERE backup_stored_filename IS NOT NULL;") {
             if let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) {
                 for r in rows.flatten() {
                     registered.insert(r);

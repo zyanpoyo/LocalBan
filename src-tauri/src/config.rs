@@ -60,6 +60,8 @@ pub struct AppSettings {
     pub close_to_tray: bool,
     #[serde(default = "default_has_seen_coach_mark")]
     pub has_seen_coach_mark: bool,
+    #[serde(default)]
+    pub preferred_editor: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -67,6 +69,7 @@ impl Default for AppSettings {
         Self {
             close_to_tray: true,
             has_seen_coach_mark: true,
+            preferred_editor: None,
         }
     }
 }
@@ -77,6 +80,7 @@ pub fn load_or_init_settings(is_fresh_install: bool) -> AppSettings {
         let initial_settings = AppSettings {
             close_to_tray: true,
             has_seen_coach_mark: !is_fresh_install,
+            preferred_editor: None,
         };
         let _ = save_settings(&initial_settings);
         return initial_settings;

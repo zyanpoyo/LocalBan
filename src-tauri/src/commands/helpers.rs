@@ -115,7 +115,7 @@ fn fetch_card_checklists(conn: &Connection, card_id: &str) -> Result<Vec<Checkli
 fn fetch_card_attachments(conn: &Connection, card_id: &str) -> Result<Vec<AttachmentResponse>, String> {
     let mut att_stmt = conn
         .prepare(
-            "SELECT id, card_id, filename, stored_filename, file_size, mime_type, created_at
+            "SELECT id, card_id, filename, stored_filename, file_size, mime_type, created_at, (backup_stored_filename IS NOT NULL) AS has_backup
              FROM attachments
              WHERE card_id = ?1 AND is_cover = 0
              ORDER BY created_at ASC;",
@@ -132,6 +132,7 @@ fn fetch_card_attachments(conn: &Connection, card_id: &str) -> Result<Vec<Attach
                 file_size: r.get(4)?,
                 mime_type: r.get(5)?,
                 created_at: r.get(6)?,
+                has_backup: r.get(7)?,
             })
         })
         .map_err(|e| e.to_string())?;

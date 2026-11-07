@@ -3,6 +3,7 @@ pub mod commands;
 pub mod config;
 pub mod db;
 pub mod models;
+pub mod watcher;
 
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use rusqlite::params;
@@ -174,6 +175,7 @@ pub fn run() {
     let is_fresh_install =
         !config::get_db_path().exists() && !config::get_settings_path().exists();
     let _ = db::init_database();
+    watcher::cleanup_temp_attachments();
     let initial_settings = config::load_or_init_settings(is_fresh_install);
     CLOSE_TO_TRAY.store(initial_settings.close_to_tray, Ordering::SeqCst);
 
@@ -192,6 +194,7 @@ pub fn run() {
         // 3. Custom Protocol: localban://attachments/{id}
         .register_uri_scheme_protocol("localban", |_app, request| handle_localban_protocol(request))
         // 4. Setup Tray & Window Lifecycle
+        .manage(watcher::ActiveWatchers::new())
         .setup(setup_system_tray)
         .on_window_event(|window, event| {
             log_to_file(&format!(
@@ -241,6 +244,12 @@ pub fn run() {
             commands::upload_card_cover,
             commands::delete_attachment,
             commands::save_attachment_as,
+            commands::create_empty_attachment,
+            commands::rename_attachment,
+            commands::open_attachment,
+            commands::restore_attachment_backup,
+            commands::pick_editor_executable,
+            commands::set_preferred_editor,
             commands::get_system_status,
             commands::get_app_settings,
             commands::update_app_settings,
@@ -700,6 +709,7 @@ mod tests {
         let fresh_init = config::AppSettings {
             close_to_tray: true,
             has_seen_coach_mark: false,
+            preferred_editor: None,
         };
         assert!(!fresh_init.has_seen_coach_mark);
     }
@@ -783,7 +793,7 @@ mod tests {
 
         let _extra_card =
             commands::create_card(list_id.clone(), "追加されたカード".into(), None, None).unwrap();
-        let _ = commands::delete_attachment(attachment.id.clone()).unwrap();
+        let _ = commands::delete_attachment_internal(None, attachment.id.clone()).unwrap();
 
         let board_modified = commands::get_board_state().unwrap();
         assert_eq!(board_modified.cards.len(), card_count_before + 1);
@@ -997,4 +1007,71 @@ mod tests {
         );
         assert_eq!(card_cleared.attachments.len(), 1);
     }
+    #[test]
+    fn test_empty_attachment_creation_and_rename() {
+        let _env = TestEnv::new();
+
+        let lists = commands::get_lists().unwrap();
+        let card = commands::create_card(
+            lists[0].id.clone(),
+            "Attachment Test Card".into(),
+            None,
+            None,
+        )
+        .unwrap();
+
+        // 1. 初回作成: "無題.md"
+        let att1 = commands::create_empty_attachment(card.id.clone(), "md".into()).unwrap();
+        assert_eq!(att1.filename, "無題.md");
+        assert_eq!(att1.file_size, 0);
+        assert!(!att1.has_backup);
+        let path1 = config::safe_resolve_attachment_path(&att1.stored_filename).unwrap();
+        assert!(path1.exists());
+
+        // 2. 2回目作成: 連番 "無題 (2).md"
+        let att2 = commands::create_empty_attachment(card.id.clone(), "md".into()).unwrap();
+        assert_eq!(att2.filename, "無題 (2).md");
+
+        // 3. テキストファイル作成: "無題.txt"
+        let att3 = commands::create_empty_attachment(card.id.clone(), "txt".into()).unwrap();
+        assert_eq!(att3.filename, "無題.txt");
+
+        // 4. リネーム
+        let renamed = commands::rename_attachment(att1.id.clone(), "仕様書.md".into()).unwrap();
+        assert_eq!(renamed.filename, "仕様書.md");
+
+        // 5. 不正ファイル名のリネーム拒否
+        assert!(commands::rename_attachment(att1.id.clone(), "   ".into()).is_err());
+        assert!(commands::rename_attachment(att1.id.clone(), "invalid/name.md".into()).is_err());
+
+        // 6. 削除処理
+        let deleted = commands::delete_attachment_internal(None, att1.id).unwrap();
+        assert_eq!(deleted, renamed.id);
+        assert!(!path1.exists());
+    }
+
+    #[test]
+    fn test_preferred_editor_setting_and_persistence() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let custom_path = temp_dir.path().to_str().unwrap().to_string();
+        std::env::set_var("LOCALBAN_DATA_DIR", &custom_path);
+
+        // デフォルトは None
+        let initial = commands::get_app_settings();
+        assert!(initial.preferred_editor.is_none());
+
+        // "vscode" を設定
+        let set_res = commands::set_preferred_editor(Some("vscode".into())).unwrap();
+        assert_eq!(set_res.preferred_editor.as_deref(), Some("vscode"));
+
+        // 再読み込みして永続化確認
+        let reloaded = commands::get_app_settings();
+        assert_eq!(reloaded.preferred_editor.as_deref(), Some("vscode"));
+
+        // "default" を指定すると None にリセット
+        let reset_res = commands::set_preferred_editor(Some("default".into())).unwrap();
+        assert!(reset_res.preferred_editor.is_none());
+        assert!(commands::get_app_settings().preferred_editor.is_none());
+    }
+
 }

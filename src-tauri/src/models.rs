@@ -44,6 +44,7 @@ pub struct AttachmentResponse {
     pub file_size: i64,
     pub mime_type: Option<String>,
     pub created_at: String,
+    pub has_backup: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +84,7 @@ pub struct SystemStatusResponse {
 pub struct AppSettingsResponse {
     pub close_to_tray: bool,
     pub has_seen_coach_mark: bool,
+    pub preferred_editor: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -19,6 +19,7 @@ pub fn get_app_settings() -> AppSettingsResponse {
     AppSettingsResponse {
         close_to_tray: settings.close_to_tray,
         has_seen_coach_mark: settings.has_seen_coach_mark,
+        preferred_editor: settings.preferred_editor,
     }
 }
 
@@ -31,6 +32,7 @@ pub fn update_app_settings(close_to_tray: bool) -> Result<AppSettingsResponse, S
     Ok(AppSettingsResponse {
         close_to_tray,
         has_seen_coach_mark: settings.has_seen_coach_mark,
+        preferred_editor: settings.preferred_editor,
     })
 }
 
@@ -42,11 +44,33 @@ pub fn complete_coach_mark() -> Result<AppSettingsResponse, String> {
     Ok(AppSettingsResponse {
         close_to_tray: settings.close_to_tray,
         has_seen_coach_mark: true,
+        preferred_editor: settings.preferred_editor,
+    })
+}
+
+
+#[tauri::command]
+pub fn set_preferred_editor(editor: Option<String>) -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings();
+    settings.preferred_editor = editor.and_then(|e| {
+        let t = e.trim().to_string();
+        if t.is_empty() || t == "default" {
+            None
+        } else {
+            Some(t)
+        }
+    });
+    save_settings(&settings)?;
+    Ok(AppSettingsResponse {
+        close_to_tray: settings.close_to_tray,
+        has_seen_coach_mark: settings.has_seen_coach_mark,
+        preferred_editor: settings.preferred_editor,
     })
 }
 
 #[tauri::command]
 pub fn shutdown_app(app: AppHandle) {
+    crate::watcher::cleanup_temp_attachments();
     crate::SHOULD_EXIT.store(true, std::sync::atomic::Ordering::SeqCst);
     app.exit(0);
 }
