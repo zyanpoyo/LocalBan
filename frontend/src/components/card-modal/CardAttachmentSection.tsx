@@ -62,6 +62,42 @@ export const CardAttachmentSection: React.FC<CardAttachmentSectionProps> = ({
 
   const menuRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFileUpload(e.dataTransfer.files);
+    }
+  };
 
   // 記憶されたエディタ設定の取得
   const loadEditorSetting = () => {
@@ -237,18 +273,23 @@ export const CardAttachmentSection: React.FC<CardAttachmentSectionProps> = ({
             className="hidden"
           />
         </div>
-      </div>
-
-      {/* ドラッグ＆ドロップまたはペースト案内 */}
+      </div>      {/* ドラッグ＆ドロップまたはペースト案内 */}
       <div
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          onFileUpload(e.dataTransfer.files);
-        }}
-        className="p-3 border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl text-center text-xs text-slate-500 bg-slate-50/50 transition-colors"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        className={`p-3 border-2 border-dashed rounded-xl text-center text-xs transition-all ${
+          isDragOver
+            ? 'border-indigo-500 bg-indigo-50/80 text-indigo-700 shadow-xs scale-[1.01]'
+            : 'border-slate-200 hover:border-indigo-400 text-slate-500 bg-slate-50/50'
+        }`}
       >
-        ファイルをドラッグ＆ドロップ、またはクリップボードから画像をペースト (Ctrl+V)
+        <span className="pointer-events-none">
+          {isDragOver
+            ? 'ここにファイルをドロップして添付'
+            : 'ファイルをドラッグ＆ドロップ、またはクリップボードから画像をペースト (Ctrl+V)'}
+        </span>
       </div>
 
       {/* 添付一覧 */}

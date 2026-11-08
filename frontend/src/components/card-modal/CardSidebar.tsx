@@ -120,9 +120,13 @@ export const CardSidebar: React.FC<CardSidebarProps> = ({
             <button
               type="button"
               onClick={() => coverInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               onDrop={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 const file = e.dataTransfer.files?.[0];
                 if (file) onCoverUpload(file);
               }}
@@ -135,9 +139,13 @@ export const CardSidebar: React.FC<CardSidebarProps> = ({
           <button
             type="button"
             onClick={() => coverInputRef.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             onDrop={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               const file = e.dataTransfer.files?.[0];
               if (file) onCoverUpload(file);
             }}

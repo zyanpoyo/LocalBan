@@ -20,7 +20,8 @@
         "minHeight": 600,
         "center": true,
         "decorations": true,
-        "visible": true
+        "visible": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {
@@ -37,7 +38,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-
     "windows": {
       "nsis": {
         "languages": [
