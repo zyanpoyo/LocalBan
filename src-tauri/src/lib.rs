@@ -247,6 +247,8 @@ pub fn run() {
             commands::create_empty_attachment,
             commands::rename_attachment,
             commands::open_attachment,
+            commands::open_card_folder,
+            commands::reveal_card_folder_in_explorer,
             commands::restore_attachment_backup,
             commands::pick_editor_executable,
             commands::set_preferred_editor,
@@ -1074,4 +1076,102 @@ mod tests {
         assert!(commands::get_app_settings().preferred_editor.is_none());
     }
 
+    #[test]
+    fn test_card_folder_flat_deployment_and_bidirectional_sync() {
+        let _env = TestEnv::new();
+
+        let lists = commands::get_lists().unwrap();
+        let card = commands::create_card(
+            lists[0].id.clone(),
+            "Card Folder Sync Test".into(),
+            None,
+            None,
+        )
+        .unwrap();
+
+        // 1. Markdownファイルと画像ファイルをアップロード
+        let md_att = commands::upload_attachment(
+            card.id.clone(),
+            "memo.md".into(),
+            "text/markdown".into(),
+            b"# Title\n".to_vec(),
+        )
+        .unwrap();
+        assert_eq!(md_att.filename, "memo.md");
+
+        let img1 = commands::upload_attachment(
+            card.id.clone(),
+            "screenshot.png".into(),
+            "image/png".into(),
+            b"png-bytes-1".to_vec(),
+        )
+        .unwrap();
+        assert_eq!(img1.filename, "screenshot.png");
+
+        // 2. 同名ファイルのアップロード時は自動ナンバリングされること
+        let img2 = commands::upload_attachment(
+            card.id.clone(),
+            "screenshot.png".into(),
+            "image/png".into(),
+            b"png-bytes-2".to_vec(),
+        )
+        .unwrap();
+        assert_eq!(img2.filename, "screenshot (2).png");
+
+        // 3. カード一時フォルダへのフラット展開の検証
+        let temp_card_dir = watcher::prepare_card_temp_dir(&card.id, false).unwrap();
+        assert!(temp_card_dir.join("memo.md").exists());
+        assert!(temp_card_dir.join("screenshot.png").exists());
+        assert!(temp_card_dir.join("screenshot (2).png").exists());
+
+        // 4. Watcherスキャンの初期化と既存ファイル編集同期の検証
+        let mut modified_map = std::collections::HashMap::new();
+        watcher::scan_and_sync_card_dir(None, &card.id, &temp_card_dir, &mut modified_map).unwrap();
+
+        // タイムスタンプ差を作るために少し待機して memo.md を更新
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let updated_md_content = b"# Title\n![Screen](screenshot.png)\n";
+        std::fs::write(temp_card_dir.join("memo.md"), updated_md_content).unwrap();
+        // 確実に過去時刻との差をつけるため modified_map のエントリを古い時刻に調整
+        modified_map.insert(
+            "memo.md".to_string(),
+            std::time::SystemTime::UNIX_EPOCH,
+        );
+
+        watcher::scan_and_sync_card_dir(None, &card.id, &temp_card_dir, &mut modified_map).unwrap();
+
+        let updated_card = commands::get_card(card.id.clone()).unwrap();
+        let synced_md = updated_card
+            .attachments
+            .iter()
+            .find(|a| a.id == md_att.id)
+            .unwrap();
+        assert_eq!(synced_md.file_size, updated_md_content.len() as i64);
+        assert!(synced_md.has_backup, "初回編集時にバックアップが作成されること");
+
+        // 5. 外部エディタで新規画像および除外ファイルが作成された場合の検証
+        std::fs::write(temp_card_dir.join("pasted.png"), b"new-pasted-image").unwrap();
+        std::fs::write(temp_card_dir.join("~temp.tmp"), b"ignored-temp").unwrap();
+        std::fs::write(temp_card_dir.join(".hidden.md"), b"ignored-hidden").unwrap();
+
+        watcher::scan_and_sync_card_dir(None, &card.id, &temp_card_dir, &mut modified_map).unwrap();
+
+        let card_after_new = commands::get_card(card.id.clone()).unwrap();
+        assert_eq!(
+            card_after_new.attachments.len(),
+            4,
+            "pasted.png のみが新規添付ファイルとして自動登録されること"
+        );
+        assert!(card_after_new
+            .attachments
+            .iter()
+            .any(|a| a.filename == "pasted.png" && a.mime_type.as_deref() == Some("image/png")));
+        assert!(!card_after_new
+            .attachments
+            .iter()
+            .any(|a| a.filename.contains("temp") || a.filename.contains("hidden")));
+
+        // クリーンアップ
+        watcher::cleanup_temp_attachments();
+    }
 }

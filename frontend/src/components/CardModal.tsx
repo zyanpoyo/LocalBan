@@ -16,6 +16,8 @@ import {
   createEmptyAttachment,
   renameAttachment,
   openAttachment,
+  openCardFolder,
+  revealCardFolderInExplorer,
   restoreAttachmentBackup,
   onAttachmentUpdated,
 } from '../api';
@@ -104,6 +106,36 @@ export const CardModal: React.FC<CardModalProps> = ({
     setDueDate(toLocalDatetimeString(card.due_date));
     setIsDueComplete(card.is_due_complete);
   }, [card, isEditingTitle]);
+
+  // 外部エディタ（Watcher）での添付ファイル更新・新規追加のリアルタイム反映
+  useEffect(() => {
+    const unlisten = onAttachmentUpdated((payload) => {
+      if (payload.card_id !== currentCard.id) return;
+
+      setCurrentCard((prev) => {
+        let nextAttachments = prev.attachments;
+        if (payload.created_attachment) {
+          const exists = prev.attachments.some((a) => a.id === payload.created_attachment!.id);
+          if (!exists) {
+            nextAttachments = [...prev.attachments, payload.created_attachment];
+          }
+        } else {
+          nextAttachments = prev.attachments.map((a) =>
+            a.id === payload.attachment_id
+              ? { ...a, file_size: payload.file_size, has_backup: payload.has_backup }
+              : a
+          );
+        }
+        const updated = { ...prev, attachments: nextAttachments };
+        onCardUpdated(updated);
+        return updated;
+      });
+    });
+
+    return () => {
+      unlisten();
+    };
+  }, [currentCard.id, onCardUpdated]);
 
   // カバー画像のアップロード (ファイル選択 / ドラッグ＆ドロップ)
   const handleCoverUpload = async (file: File) => {
@@ -313,6 +345,22 @@ export const CardModal: React.FC<CardModalProps> = ({
       await openAttachment(attId, editor);
     } catch (err: any) {
       alert(err.message || 'ファイルを開けませんでした');
+    }
+  };
+
+  const handleOpenCardFolder = async (editor?: string) => {
+    try {
+      await openCardFolder(currentCard.id, editor);
+    } catch (err: any) {
+      alert(err.message || 'フォルダを開けませんでした');
+    }
+  };
+
+  const handleRevealCardFolder = async () => {
+    try {
+      await revealCardFolderInExplorer(currentCard.id);
+    } catch (err: any) {
+      alert(err.message || 'エクスプローラーを開けませんでした');
     }
   };
 
@@ -637,6 +685,8 @@ export const CardModal: React.FC<CardModalProps> = ({
               onCreateFile={handleCreateFile}
               onRenameAttachment={handleRenameAttachment}
               onOpenAttachment={handleOpenAttachment}
+              onOpenCardFolder={handleOpenCardFolder}
+              onRevealCardFolder={handleRevealCardFolder}
               onRestoreBackup={handleRestoreBackup}
               onDeleteAttachment={(attId) => void handleDeleteAttachment(attId)}
               onPreviewImage={(url) => setPreviewImageUrl(url)}

@@ -292,3 +292,73 @@ pub(crate) fn remove_stored_file_quietly(stored_filename: &str) {
         let _ = std::fs::remove_file(path);
     }
 }
+
+/// 同一カード内でファイル名が一意になるよう重複チェックを行い、衝突時は "name (2).ext" のように自動ナンバリングする
+pub(crate) fn ensure_unique_attachment_filename(
+    conn: &Connection,
+    card_id: &str,
+    desired_filename: &str,
+    exclude_att_id: Option<&str>,
+) -> Result<String, String> {
+    let base_raw = desired_filename
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(desired_filename)
+        .trim();
+
+    let sanitized: String = base_raw
+        .chars()
+        .map(|c| {
+            if matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect();
+
+    let base_filename = if sanitized.trim().is_empty() {
+        "file".to_string()
+    } else {
+        sanitized.trim().to_string()
+    };
+
+    let mut stmt = conn
+        .prepare("SELECT id, filename FROM attachments WHERE card_id = ?1 AND is_cover = 0;")
+        .map_err(|e| e.to_string())?;
+
+    let existing_lower: std::collections::HashSet<String> = stmt
+        .query_map(params![card_id], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+        })
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .filter(|(id, _)| exclude_att_id != Some(id.as_str()))
+        .map(|(_, fname)| fname.to_lowercase())
+        .collect();
+
+    if !existing_lower.contains(&base_filename.to_lowercase()) {
+        return Ok(base_filename);
+    }
+
+    let path = Path::new(&base_filename);
+    let stem = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(&base_filename);
+    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+    let mut counter = 2;
+    loop {
+        let candidate = if ext.is_empty() {
+            format!("{} ({})", stem, counter)
+        } else {
+            format!("{} ({}).{}", stem, counter, ext)
+        };
+        if !existing_lower.contains(&candidate.to_lowercase()) {
+            return Ok(candidate);
+        }
+        counter += 1;
+    }
+}
+

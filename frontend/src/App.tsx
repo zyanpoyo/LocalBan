@@ -10,6 +10,7 @@ import {
   moveCard,
   shutdownServer,
   onSyncMessage,
+  onAttachmentUpdated,
   fetchAppSettings,
   completeCoachMark,
 } from './api';
@@ -75,8 +76,14 @@ export const App: React.FC = () => {
       loadData();
     });
 
+    // 外部エディタ（Watcher）での添付ファイル更新・新規追加のボード反映
+    const unlistenAttachment = onAttachmentUpdated(() => {
+      loadData();
+    });
+
     return () => {
       unsubscribeSync();
+      unlistenAttachment();
     };
   }, [loadData]);
 

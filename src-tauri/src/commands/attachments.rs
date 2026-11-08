@@ -1,21 +1,22 @@
 use chrono::Utc;
 use rusqlite::{params, OptionalExtension};
-use std::collections::HashSet;
 use std::fs;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
 use crate::commands::helpers::{
-    build_card_response, cleanup_old_cover_record, remove_stored_file_quietly,
-    write_attachment_bytes,
+    build_card_response, cleanup_old_cover_record, ensure_unique_attachment_filename,
+    remove_stored_file_quietly, write_attachment_bytes,
 };
 use crate::config::{load_settings, safe_resolve_attachment_path, save_settings, MAX_UPLOAD_SIZE};
-use std::path::{Path, PathBuf};
 use crate::db::get_connection;
 use crate::models::{AttachmentResponse, CardResponse};
-use crate::watcher::{get_temp_attachments_base_dir, ActiveWatchers};
+use crate::watcher::{
+    get_temp_attachments_base_dir, get_temp_card_dir, prepare_card_temp_dir, ActiveWatchers,
+};
 
 #[tauri::command]
 pub fn upload_attachment(
@@ -43,7 +44,8 @@ pub fn upload_attachment(
         return Err("Card not found".to_string());
     }
 
-    let stored_filename = write_attachment_bytes(&filename, &data)?;
+    let unique_filename = ensure_unique_attachment_filename(&conn, &card_id, &filename, None)?;
+    let stored_filename = write_attachment_bytes(&unique_filename, &data)?;
     let attach_id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
     let file_size = data.len() as i64;
@@ -51,14 +53,28 @@ pub fn upload_attachment(
     conn.execute(
         "INSERT INTO attachments (id, card_id, filename, stored_filename, file_size, mime_type, is_cover, created_at, backup_stored_filename)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, NULL);",
-        params![attach_id, card_id, filename, stored_filename, file_size, mime_type, now],
+        params![
+            attach_id,
+            card_id,
+            unique_filename,
+            stored_filename,
+            file_size,
+            mime_type,
+            now
+        ],
     )
     .map_err(|e| e.to_string())?;
+
+    // 既にカードの一時作業フォルダが存在する場合は、そちらにも即座に展開する
+    let temp_card_dir = get_temp_card_dir(&card_id);
+    if temp_card_dir.exists() {
+        let _ = fs::write(temp_card_dir.join(&unique_filename), &data);
+    }
 
     Ok(AttachmentResponse {
         id: attach_id,
         card_id,
-        filename,
+        filename: unique_filename,
         stored_filename,
         file_size,
         mime_type: Some(mime_type),
@@ -79,7 +95,9 @@ pub fn upload_card_cover(
     }
 
     if !mime_type.starts_with("image/") || mime_type == "image/svg+xml" {
-        return Err("Only raster image files (JPEG, PNG, WebP, etc.) are allowed for covers".to_string());
+        return Err(
+            "Only raster image files (JPEG, PNG, WebP, etc.) are allowed for covers".to_string(),
+        );
     }
 
     let mut conn = get_connection().map_err(|e| e.to_string())?;
@@ -155,21 +173,8 @@ pub fn create_empty_attachment(
         &extension
     };
 
-    let base_name = "無題";
-    let existing_names: HashSet<String> = conn
-        .prepare("SELECT filename FROM attachments WHERE card_id = ?1 AND is_cover = 0;")
-        .map_err(|e| e.to_string())?
-        .query_map(params![&card_id], |r| r.get::<_, String>(0))
-        .map_err(|e| e.to_string())?
-        .flatten()
-        .collect();
-
-    let mut candidate = format!("{}.{}", base_name, ext);
-    let mut counter = 2;
-    while existing_names.contains(&candidate) {
-        candidate = format!("{} ({}).{}", base_name, counter, ext);
-        counter += 1;
-    }
+    let desired = format!("無題.{}", ext);
+    let candidate = ensure_unique_attachment_filename(&conn, &card_id, &desired, None)?;
 
     let empty_bytes = b"";
     let stored_filename = write_attachment_bytes(&candidate, empty_bytes)?;
@@ -188,6 +193,12 @@ pub fn create_empty_attachment(
     )
     .map_err(|e| e.to_string())?;
 
+    // 既にカードの一時作業フォルダが存在する場合は、そちらにも空ファイルを作成
+    let temp_card_dir = get_temp_card_dir(&card_id);
+    if temp_card_dir.exists() {
+        let _ = fs::write(temp_card_dir.join(&candidate), empty_bytes);
+    }
+
     Ok(AttachmentResponse {
         id: attach_id,
         card_id,
@@ -201,10 +212,7 @@ pub fn create_empty_attachment(
 }
 
 #[tauri::command]
-pub fn rename_attachment(
-    id: String,
-    new_filename: String,
-) -> Result<AttachmentResponse, String> {
+pub fn rename_attachment(id: String, new_filename: String) -> Result<AttachmentResponse, String> {
     let trimmed = new_filename.trim();
     if trimmed.is_empty() {
         return Err("Filename cannot be empty".to_string());
@@ -215,11 +223,32 @@ pub fn rename_attachment(
 
     let conn = get_connection().map_err(|e| e.to_string())?;
 
+    let (card_id, old_filename): (String, String) = conn
+        .query_row(
+            "SELECT card_id, filename FROM attachments WHERE id = ?1;",
+            params![&id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .map_err(|_| "Attachment not found".to_string())?;
+
+    let unique_filename =
+        ensure_unique_attachment_filename(&conn, &card_id, trimmed, Some(&id))?;
+
     conn.execute(
         "UPDATE attachments SET filename = ?1 WHERE id = ?2;",
-        params![trimmed, &id],
+        params![&unique_filename, &id],
     )
     .map_err(|e| e.to_string())?;
+
+    // 一時フォルダ内のファイルもリネーム反映
+    let temp_card_dir = get_temp_card_dir(&card_id);
+    if temp_card_dir.exists() && old_filename != unique_filename {
+        let old_path = temp_card_dir.join(&old_filename);
+        let new_path = temp_card_dir.join(&unique_filename);
+        if old_path.exists() {
+            let _ = fs::rename(&old_path, &new_path);
+        }
+    }
 
     let res: AttachmentResponse = conn
         .query_row(
@@ -244,18 +273,17 @@ pub fn rename_attachment(
     Ok(res)
 }
 
-
-fn launch_vscode(file_path: &Path) -> Result<(), String> {
+fn launch_vscode(target_path: &Path) -> Result<(), String> {
     // 1. PATH上の code.cmd または code
     if std::process::Command::new("code.cmd")
-        .arg(file_path)
+        .arg(target_path)
         .spawn()
         .is_ok()
     {
         return Ok(());
     }
     if std::process::Command::new("code")
-        .arg(file_path)
+        .arg(target_path)
         .spawn()
         .is_ok()
     {
@@ -270,7 +298,7 @@ fn launch_vscode(file_path: &Path) -> Result<(), String> {
             .join("Code.exe");
         if code_path.exists()
             && std::process::Command::new(code_path)
-                .arg(file_path)
+                .arg(target_path)
                 .spawn()
                 .is_ok()
         {
@@ -285,7 +313,7 @@ fn launch_vscode(file_path: &Path) -> Result<(), String> {
             .join("Code.exe");
         if code_path.exists()
             && std::process::Command::new(code_path)
-                .arg(file_path)
+                .arg(target_path)
                 .spawn()
                 .is_ok()
         {
@@ -328,11 +356,14 @@ pub fn open_attachment(
         return Err("File not found on disk".to_string());
     }
 
-    let temp_dir = get_temp_attachments_base_dir().join(&id);
-    fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+    // カード単位のフラット一時フォルダに同カードの全添付ファイルを展開
+    let is_watching = watchers.is_watching_card(&card_id);
+    let temp_dir = prepare_card_temp_dir(&card_id, is_watching)?;
     let temp_file_path = temp_dir.join(&filename);
 
-    fs::copy(&src_path, &temp_file_path).map_err(|e| e.to_string())?;
+    if !temp_file_path.exists() {
+        fs::copy(&src_path, &temp_file_path).map_err(|e| e.to_string())?;
+    }
 
     let path_str = temp_file_path
         .to_str()
@@ -361,6 +392,7 @@ pub fn open_attachment(
                 "notepad" => {
                     let _ = std::process::Command::new("notepad.exe")
                         .arg(&temp_file_path)
+                        .current_dir(&temp_dir)
                         .spawn();
                 }
                 "vscode" => {
@@ -371,6 +403,7 @@ pub fn open_attachment(
                 custom_exe => {
                     if std::process::Command::new(custom_exe)
                         .arg(&temp_file_path)
+                        .current_dir(&temp_dir)
                         .spawn()
                         .is_err()
                     {
@@ -383,12 +416,149 @@ pub fn open_attachment(
                 .open_path(path_str, None::<&str>)
                 .map_err(|e| e.to_string())?;
         }
-        watchers.start_watcher(app, id, card_id, temp_file_path, stored_name);
     } else {
         app.opener()
             .open_path(path_str, None::<&str>)
             .map_err(|e| e.to_string())?;
     }
+
+    // カードフォルダ全体の変更および新規追加の監視を開始
+    watchers.start_card_watcher(app, card_id);
+
+    Ok("opened".to_string())
+}
+
+#[tauri::command]
+pub fn open_card_folder(
+    app: AppHandle,
+    watchers: State<'_, ActiveWatchers>,
+    card_id: String,
+    editor: Option<String>,
+) -> Result<String, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    let card_exists: bool = conn
+        .query_row(
+            "SELECT 1 FROM cards WHERE id = ?1;",
+            params![&card_id],
+            |_| Ok(true),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .unwrap_or(false);
+
+    if !card_exists {
+        return Err("Card not found".to_string());
+    }
+
+    let is_watching = watchers.is_watching_card(&card_id);
+    let temp_dir = prepare_card_temp_dir(&card_id, is_watching)?;
+    let dir_str = temp_dir
+        .to_str()
+        .ok_or_else(|| "Invalid temp directory path".to_string())?;
+
+    if let Some(ref e) = editor {
+        let trimmed = e.trim();
+        let mut settings = load_settings();
+        settings.preferred_editor = if trimmed.is_empty() || trimmed == "default" {
+            None
+        } else {
+            Some(trimmed.to_string())
+        };
+        let _ = save_settings(&settings);
+    }
+
+    let target_editor = editor.or_else(|| load_settings().preferred_editor);
+
+    match target_editor.as_deref() {
+        Some("vscode") => {
+            if launch_vscode(&temp_dir).is_err() {
+                let _ = app.opener().open_path(dir_str, None::<&str>);
+            }
+        }
+        Some("notepad") => {
+            // メモ帳はフォルダ自体を開けないため、先頭のmd/txtがあれば開き、なければフォルダを開く
+            let first_text: Option<String> = conn
+                .query_row(
+                    "SELECT filename FROM attachments WHERE card_id = ?1 AND is_cover = 0 AND (filename LIKE '%.md' OR filename LIKE '%.txt') ORDER BY created_at ASC LIMIT 1;",
+                    params![&card_id],
+                    |r| r.get(0),
+                )
+                .optional()
+                .ok()
+                .flatten();
+
+            if let Some(fname) = first_text {
+                let _ = std::process::Command::new("notepad.exe")
+                    .arg(temp_dir.join(fname))
+                    .current_dir(&temp_dir)
+                    .spawn();
+            } else {
+                let _ = app.opener().open_path(dir_str, None::<&str>);
+            }
+        }
+        Some(custom_exe) => {
+            if std::process::Command::new(custom_exe)
+                .arg(&temp_dir)
+                .current_dir(&temp_dir)
+                .spawn()
+                .is_err()
+            {
+                let _ = app.opener().open_path(dir_str, None::<&str>);
+            }
+        }
+        None => {
+            // 優先エディタ未設定時はVS Codeがあれば優先し、なければエクスプローラーで開く
+            if launch_vscode(&temp_dir).is_err() {
+                app.opener()
+                    .open_path(dir_str, None::<&str>)
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    watchers.start_card_watcher(app, card_id);
+
+    Ok("opened".to_string())
+}
+
+#[tauri::command]
+pub fn reveal_card_folder_in_explorer(
+    app: AppHandle,
+    watchers: State<'_, ActiveWatchers>,
+    card_id: String,
+) -> Result<String, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    let card_exists: bool = conn
+        .query_row(
+            "SELECT 1 FROM cards WHERE id = ?1;",
+            params![&card_id],
+            |_| Ok(true),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .unwrap_or(false);
+
+    if !card_exists {
+        return Err("Card not found".to_string());
+    }
+
+    let is_watching = watchers.is_watching_card(&card_id);
+    let temp_dir = prepare_card_temp_dir(&card_id, is_watching)?;
+    let dir_str = temp_dir
+        .to_str()
+        .ok_or_else(|| "Invalid temp directory path".to_string())?;
+
+    if std::process::Command::new("explorer.exe")
+        .arg(&temp_dir)
+        .spawn()
+        .is_err()
+    {
+        app.opener()
+            .open_path(dir_str, None::<&str>)
+            .map_err(|e| e.to_string())?;
+    }
+
+    watchers.start_card_watcher(app, card_id);
 
     Ok("opened".to_string())
 }
@@ -399,8 +569,13 @@ pub fn restore_attachment_backup(
     id: String,
 ) -> Result<AttachmentResponse, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
-    let (card_id, filename, stored_name, backup_stored): (String, String, String, Option<String>) =
-        conn.query_row(
+    let (card_id, filename, stored_name, backup_stored): (
+        String,
+        String,
+        String,
+        Option<String>,
+    ) = conn
+        .query_row(
             "SELECT card_id, filename, stored_filename, backup_stored_filename FROM attachments WHERE id = ?1;",
             params![&id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
@@ -431,10 +606,10 @@ pub fn restore_attachment_backup(
     )
     .map_err(|e| e.to_string())?;
 
-    // 開かれている一時ファイルがあればそちらも復元
-    let temp_file_path = get_temp_attachments_base_dir().join(&id).join(&filename);
-    if temp_file_path.exists() {
-        let _ = fs::copy(&stored_path, &temp_file_path);
+    // 開かれているカード一時ファイルがあればそちらも復元
+    let temp_card_file = get_temp_card_dir(&card_id).join(&filename);
+    if temp_card_file.exists() {
+        let _ = fs::copy(&stored_path, &temp_card_file);
     }
 
     // フロントエンドに更新通知
@@ -481,19 +656,20 @@ pub fn delete_attachment(
 }
 
 pub fn delete_attachment_internal(
-    watchers: Option<&ActiveWatchers>,
+    _watchers: Option<&ActiveWatchers>,
     id: String,
 ) -> Result<String, String> {
-    if let Some(w) = watchers {
-        w.stop_watcher(&id);
-    }
-
     let mut conn = get_connection().map_err(|e| e.to_string())?;
-    let (stored_name, backup_stored): (String, Option<String>) = conn
+    let (card_id, filename, stored_name, backup_stored): (
+        String,
+        String,
+        String,
+        Option<String>,
+    ) = conn
         .query_row(
-            "SELECT stored_filename, backup_stored_filename FROM attachments WHERE id = ?1;",
+            "SELECT card_id, filename, stored_filename, backup_stored_filename FROM attachments WHERE id = ?1;",
             params![&id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
         )
         .map_err(|_| "Attachment not found".to_string())?;
 
@@ -512,10 +688,16 @@ pub fn delete_attachment_internal(
         remove_stored_file_quietly(b);
     }
 
-    // 一時フォルダも削除
-    let temp_dir = get_temp_attachments_base_dir().join(&id);
-    if temp_dir.exists() {
-        let _ = fs::remove_dir_all(&temp_dir);
+    // カード一時フォルダ内の該当ファイルを削除
+    let temp_card_file = get_temp_card_dir(&card_id).join(&filename);
+    if temp_card_file.exists() {
+        let _ = fs::remove_file(&temp_card_file);
+    }
+
+    // 旧個別一時フォルダがあれば削除
+    let legacy_temp_dir = get_temp_attachments_base_dir().join(&id);
+    if legacy_temp_dir.exists() {
+        let _ = fs::remove_dir_all(&legacy_temp_dir);
     }
 
     Ok(id)

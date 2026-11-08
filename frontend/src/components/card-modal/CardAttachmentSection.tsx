@@ -31,6 +31,8 @@ interface CardAttachmentSectionProps {
   onCreateFile: (extension: 'md' | 'txt') => Promise<void>;
   onRenameAttachment: (id: string, newFilename: string) => Promise<void>;
   onOpenAttachment: (id: string, editor?: string) => Promise<void>;
+  onOpenCardFolder: (editor?: string) => Promise<void>;
+  onRevealCardFolder: () => Promise<void>;
   onRestoreBackup: (id: string) => Promise<void>;
   onDeleteAttachment: (attachmentId: string) => void;
   onPreviewImage: (url: string) => void;
@@ -48,6 +50,8 @@ export const CardAttachmentSection: React.FC<CardAttachmentSectionProps> = ({
   onCreateFile,
   onRenameAttachment,
   onOpenAttachment,
+  onOpenCardFolder,
+  onRevealCardFolder,
   onRestoreBackup,
   onDeleteAttachment,
   onPreviewImage,
@@ -208,13 +212,36 @@ export const CardAttachmentSection: React.FC<CardAttachmentSectionProps> = ({
 
   return (
     <div className="space-y-3 pt-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
           <Paperclip className="w-4 h-4 text-slate-500" />
           <span>添付ファイル ({attachments.length})</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {attachments.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => void onOpenCardFolder()}
+                className="text-xs font-semibold text-slate-600 hover:text-indigo-700 bg-slate-100 hover:bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                title="カードの全添付ファイルが入った作業フォルダをエディタ (VS Code等) で開く"
+              >
+                <FileCode className="w-3.5 h-3.5 text-indigo-500" />
+                <span>フォルダをエディタで開く</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void onRevealCardFolder()}
+                className="text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                title="カードの作業フォルダをエクスプローラーで開く"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-amber-500" />
+                <span>エクスプローラー</span>
+              </button>
+            </>
+          )}
+
           {/* 新規作成ドロップダウン */}
           <div className="relative" ref={menuRef}>
             <button
@@ -273,7 +300,9 @@ export const CardAttachmentSection: React.FC<CardAttachmentSectionProps> = ({
             className="hidden"
           />
         </div>
-      </div>      {/* ドラッグ＆ドロップまたはペースト案内 */}
+      </div>
+
+      {/* ドラッグ＆ドロップまたはペースト案内 */}
       <div
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -324,7 +353,11 @@ export const CardAttachmentSection: React.FC<CardAttachmentSectionProps> = ({
                 <div
                   onClick={() => void onOpenAttachment(att.id)}
                   className="w-12 h-12 rounded-lg bg-slate-50 group-hover:bg-indigo-50/60 border border-slate-100 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
-                  title={isEditable ? '外部エディタで開いて編集 (右クリックでアプリ変更)' : '既定のアプリで開く'}
+                  title={
+                    isEditable
+                      ? '外部エディタで開いて編集 (右クリックでアプリ変更)'
+                      : '既定のアプリで開く'
+                  }
                 >
                   {getFileIcon(att.filename, false)}
                 </div>

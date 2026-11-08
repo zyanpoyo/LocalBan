@@ -333,6 +333,25 @@ export async function openAttachment(id: string, editor?: string): Promise<void>
   }
 }
 
+export async function openCardFolder(cardId: string, editor?: string): Promise<void> {
+  try {
+    await invoke('open_card_folder', { cardId, editor: editor ?? null });
+  } catch (err: any) {
+    const message = typeof err === 'string' ? err : err?.message || 'フォルダを開けませんでした';
+    throw new Error(message);
+  }
+}
+
+export async function revealCardFolderInExplorer(cardId: string): Promise<void> {
+  try {
+    await invoke('reveal_card_folder_in_explorer', { cardId });
+  } catch (err: any) {
+    const message =
+      typeof err === 'string' ? err : err?.message || 'エクスプローラーを開けませんでした';
+    throw new Error(message);
+  }
+}
+
 export async function restoreAttachmentBackup(id: string): Promise<Attachment> {
   updateStatus('saving');
   try {
@@ -352,6 +371,7 @@ export interface AttachmentUpdatedPayload {
   card_id: string;
   file_size: number;
   has_backup: boolean;
+  created_attachment?: Attachment;
 }
 
 export function onAttachmentUpdated(callback: (payload: AttachmentUpdatedPayload) => void) {

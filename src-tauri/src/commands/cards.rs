@@ -498,5 +498,10 @@ pub fn permanently_delete_card(id: String) -> Result<String, String> {
         remove_stored_file_quietly(&fname);
     }
 
+    let temp_card_dir = crate::watcher::get_temp_card_dir(&id);
+    if temp_card_dir.exists() {
+        let _ = std::fs::remove_dir_all(&temp_card_dir);
+    }
+
     Ok(id)
 }
