@@ -314,14 +314,14 @@ mod tests {
         }
     }
 
-    // 1. システムステータス & バージョン検証 (v2.2.2)
+    // 1. システムステータス & バージョン検証 (v2.2.3)
     #[test]
     fn test_system_status() {
         let _env = TestEnv::new();
         let status = commands::get_system_status();
         assert_eq!(status.status, "running");
         assert_eq!(status.app, "LocalBan");
-        assert_eq!(status.version, "2.2.2");
+        assert_eq!(status.version, "2.2.3");
     }
 
     // 2. 初期データ投入検証 (シードデータ 3リスト・3カード)

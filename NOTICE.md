@@ -54,17 +54,17 @@
 
 ### @hello-pangea/dnd
 - **ライセンス**: Apache License 2.0
-- **著作権**: Copyright (c) 2022 Hello Pangea, Inc. / Original work Copyright (c) 2019 Atlassian Pty Ltd
+- **著作権**: Copyright 2021 Gabriel Santerre / Copyright 2019 Atlassian Pty Ltd
 - **URL**: https://github.com/hello-pangea/dnd
 
 ### Lucide React
-- **ライセンス**: ISC License
-- **著作権**: Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) 2022-present Lucide Contributors.
+- **ライセンス**: ISC License / MIT License (for portions derived from Feather)
+- **著作権**: Copyright (c) 2026 Lucide Icons and Contributors / Copyright (c) 2013-present Cole Bemis
 - **URL**: https://github.com/lucide-icons/lucide
 
 ### React Markdown
 - **ライセンス**: MIT License
-- **著作権**: Copyright (c) 2015 Titus Wormer <tituswormer@gmail.com>
+- **著作権**: Copyright (c) Espen Hovlandsdal
 - **URL**: https://github.com/remarkjs/react-markdown
 
 ### remark-gfm
@@ -164,8 +164,8 @@ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE拡張 OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```

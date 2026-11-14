@@ -8,6 +8,14 @@ use crate::config::{get_attachments_dir, get_backups_dir, get_settings_path, APP
 use crate::db::{backup_database_to, get_connection, restore_database_from};
 use crate::models::{BackupFileInfo, BackupManifest, RestoreResult};
 
+/// SQL COUNTクエリの結果を安全に usize へ変換して返す (rusqlite 0.42 では usize が FromSql 非対応のため i64 経由で変換)
+fn count_rows(conn: &rusqlite::Connection, query: &str) -> usize {
+    conn.query_row(query, [], |r| r.get::<_, i64>(0))
+        .ok()
+        .and_then(|v| usize::try_from(v).ok())
+        .unwrap_or(0)
+}
+
 /// 完全バックアップアーカイブ (.localban / ZIP形式) を指定のパスに生成する
 pub fn create_full_backup_archive(dest_path: &Path) -> Result<PathBuf, String> {
     if let Some(parent) = dest_path.parent() {
@@ -24,16 +32,11 @@ pub fn create_full_backup_archive(dest_path: &Path) -> Result<PathBuf, String> {
     // 2. メタデータ集計
     let (lists_count, cards_count, attachments_count) = {
         let conn = rusqlite::Connection::open(&temp_db_path).map_err(|e| e.to_string())?;
-        let l_count: usize = conn
-            .query_row("SELECT COUNT(*) FROM lists;", [], |r| r.get(0))
-            .unwrap_or(0);
-        let c_count: usize = conn
-            .query_row("SELECT COUNT(*) FROM cards;", [], |r| r.get(0))
-            .unwrap_or(0);
-        let a_count: usize = conn
-            .query_row("SELECT COUNT(*) FROM attachments;", [], |r| r.get(0))
-            .unwrap_or(0);
-        (l_count, c_count, a_count)
+        (
+            count_rows(&conn, "SELECT COUNT(*) FROM lists;"),
+            count_rows(&conn, "SELECT COUNT(*) FROM cards;"),
+            count_rows(&conn, "SELECT COUNT(*) FROM attachments;"),
+        )
     };
 
     let manifest = BackupManifest {
@@ -253,12 +256,8 @@ pub fn restore_from_backup_file(src_path: &Path) -> Result<RestoreResult, String
 
     // 復元後データの集計
     let conn = get_connection().map_err(|e| e.to_string())?;
-    let lists_count: usize = conn
-        .query_row("SELECT COUNT(*) FROM lists;", [], |r| r.get(0))
-        .unwrap_or(0);
-    let cards_count: usize = conn
-        .query_row("SELECT COUNT(*) FROM cards;", [], |r| r.get(0))
-        .unwrap_or(0);
+    let lists_count = count_rows(&conn, "SELECT COUNT(*) FROM lists;");
+    let cards_count = count_rows(&conn, "SELECT COUNT(*) FROM cards;");
 
     Ok(RestoreResult {
         success: true,
