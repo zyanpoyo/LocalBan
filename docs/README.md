@@ -1,6 +1,6 @@
-# LocalBan 設計ドキュメント (Technical Documentation) - v2.2.0
+# LocalBan 設計ドキュメント (Technical Documentation) - v2.2.2
 
-個人用オフラインカンバンボード「LocalBan v2.2.0」の技術設計ドキュメントです。  
+個人用オフラインカンバンボード「LocalBan v2.2.2」の技術設計ドキュメントです。  
 Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクライアントアプリの設計・仕様をまとめています。
 
 ---
@@ -40,5 +40,12 @@ Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクラ�
 - **テキスト装飾・リンク・コードのショートカットキー対応表**: 太字、斜体、取り消し線、インラインコード、コードブロック、リンク挿入、プレビュー切替（`Ctrl+Shift+P`）、保存（`Ctrl+Enter`）
 - **Qiita互換 ノート記法（`:::note info` / `warn` / `alert`）**: 3種類のコールアウト表示と専用ショートカットキー（`Ctrl+Shift+1`〜`3`）
 - **フォーマットツールバー & ヘルプポップオーバー**: ワンクリック装飾挿入とショートカット一覧表示
+
+### 5. [CI/CD・脆弱性＆ライセンス監査パイプライン設計 (architecture/cicd_security_design.md)](architecture/cicd_security_design.md)
+- **全体パイプライン構成図**: GitHub Dependabot 自動監視、ローカル統合監査スクリプト、モジュール生成パイプラインの連携図
+- **コア設計原則**: 完全無料（OSS＆GitHub標準機能）、省力運用（通常月1回・脆弱性即時検知）、Windowsターゲット特化によるノイズ排除
+- **コンポーネント別設計仕様**: `.github/dependabot.yml`、`src-tauri/deny.toml`（`cargo-deny`）、`scripts/security_audit.js` の詳細仕様
+- **脆弱性検知時の標準対応ワークフロー**: 自動修復、孫依存の強制オーバーライド手順、`NOTICE.md` 整合確認、パッチリリース手順
+
 
 

@@ -65,7 +65,7 @@ def draw_app_header_bar(
         draw,
         wx + 172,
         hy + 18,
-        "v2.2.0",
+        "v2.2.2",
         (236, 253, 245),
         (4, 120, 87),
         font_badge,
@@ -1154,7 +1154,7 @@ def create_promo_showcase(output_dir: Path, master_icon: Image.Image, icon_sm: I
     draw.line([(wx, hy + 54), (wx + ww, hy + 54)], fill=(226, 232, 240), width=1)
     img.paste(icon_sm, (wx + 18, hy + 11), icon_sm)
     draw.text((wx + 56, hy + 14), "LocalBan", fill=(15, 23, 42), font=get_font(18, bold=True))
-    draw_badge_pill(draw, wx + 150, hy + 15, "v2.2.0", (236, 253, 245), (4, 120, 87), get_font(11, bold=True), pad_x=8, pad_y=3, radius=6)
+    draw_badge_pill(draw, wx + 150, hy + 15, "v2.2.2", (236, 253, 245), (4, 120, 87), get_font(11, bold=True), pad_x=8, pad_y=3, radius=6)
     draw_badge_pill(draw, wx + 210, hy + 15, "オフライン", (241, 245, 249), (100, 116, 139), get_font(11, bold=True), pad_x=10, pad_y=3, radius=10)
     draw_badge_pill(draw, wx + 310, hy + 14, "✓ 保存済み", (236, 253, 245), (5, 150, 105), get_font(12, bold=True), pad_x=12, pad_y=4, radius=10)
 
@@ -1232,7 +1232,7 @@ def draw_clean_base_board(img: Image.Image, draw: ImageDraw.ImageDraw, icon_sm: 
     font_btn = get_font(13, bold=True)
 
     draw.text((64, 53), "LocalBan", fill=(15, 23, 42), font=font_logo)
-    draw_badge_pill(draw, 172, 56, "v2.2.0", (236, 253, 245), (4, 120, 87), font_badge, pad_x=10, pad_y=4, radius=8, border_color=(167, 243, 208))
+    draw_badge_pill(draw, 172, 56, "v2.2.2", (236, 253, 245), (4, 120, 87), font_badge, pad_x=10, pad_y=4, radius=8, border_color=(167, 243, 208))
     draw_badge_pill(draw, 240, 56, "オフライン", (241, 245, 249), (100, 116, 139), font_badge, pad_x=12, pad_y=4, radius=12)
 
     cx = 1920 // 2 - 55

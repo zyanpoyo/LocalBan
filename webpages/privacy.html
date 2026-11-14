@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalBan - プライバシーポリシー</title>
+  <meta name="description" content="Windows向けオフライン個人用カンバンボード「LocalBan」のプライバシーポリシーおよび免責事項。">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-link">
+        <img src="favicon.svg" alt="LocalBan" class="brand-icon" width="32" height="32">
+        <span class="brand-title">LocalBan</span>
+        <span class="brand-tag">オフライン</span>
+      </a>
+      <nav class="site-nav" aria-label="ページナビゲーション">
+        <a href="index.html" class="nav-link">使い方</a>
+        <a href="privacy.html" class="nav-link active" aria-current="page">プライバシーポリシー</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Summary Banner -->
+    <section class="hero">
+      <div class="hero-top">
+        <span class="pill pill-emerald">外部通信ゼロ</span>
+        <span class="pill pill-indigo">個人情報収集ゼロ</span>
+        <span class="pill pill-slate">完全ローカル保存</span>
+      </div>
+      <h1 class="hero-title">プライバシーポリシー / Privacy Policy</h1>
+      <div class="policy-meta">
+        <span>最終更新日: 2026年10月24日</span>
+        <span>対象アプリケーション: LocalBan</span>
+        <span>提供者: LocalBan Project</span>
+      </div>
+    </section>
+
+    <!-- Japanese Policy -->
+    <article class="section-card" id="policy-ja">
+      <div class="section-header">
+        <h2 class="section-title">日本語 (Japanese)</h2>
+      </div>
+
+      <section class="policy-block">
+        <h3>1. 基本方針</h3>
+        <p>
+          <strong>LocalBan</strong>（以下「本アプリ」）は、利用者のプライバシー保護とデータの自己管理を最優先に設計された、完全オフライン動作の個人用タスク管理アプリケーションです。
+        </p>
+      </section>
+
+      <section class="policy-block">
+        <h3>2. 個人情報の収集・外部送信について</h3>
+        <p>
+          本アプリは、利用者の個人情報、利用履歴、作成したタスク・カード内容、添付画像、クラッシュレポート、統計データ、または端末識別情報を<strong>一切収集・記録・外部送信しません</strong>。
+        </p>
+        <ul>
+          <li><strong>外部ネットワーク通信なし</strong>: 本アプリには外部サーバーへの通信機能、アクセス解析ツール、広告配信モジュール、追跡機能は一切組み込まれていません。</li>
+          <li><strong>アカウント登録不要</strong>: ユーザー登録やログインを行うことなく、すべての機能をパソコン内のローカル環境のみでご利用いただけます。</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>3. データの保存場所と管理</h3>
+        <p>
+          本アプリで作成・編集されたすべてのデータ（ボード、リスト、カード、ラベル、チェックリスト、添付画像、バックアップ、アプリ設定、動作ログ）は、お使いの Windows パソコン内のローカルストレージにのみ保存されます。
+        </p>
+        <ul>
+          <li><strong>通常版（ポータブル版 / インストーラー版）</strong>: <code>%APPDATA%\LocalBan\</code>（<code>C:\Users\&lt;ユーザー名&gt;\AppData\Roaming\LocalBan\</code>）配下に保存されます。</li>
+          <li><strong>Microsoft Store 版</strong>: Windows のアプリ隔離機能により、パッケージ専用領域（<code>%LOCALAPPDATA%\Packages\zyanpoyo.LocalBan_jcb2ksg0pnr1p\LocalCache\Roaming\LocalBan\</code>）配下に保存されます。</li>
+          <li>保存されたデータへのアクセス権限はお使いのパソコンのユーザーアカウントに限定され、開発者や第三者がアクセスすることは不可能です。</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>4. データの削除方法</h3>
+        <p>利用者はご自身のデータを以下の方法でいつでも完全に消去できます。</p>
+        <ul>
+          <li><strong>アプリ内からの個別削除</strong>: 画面上部の「アーカイブ」から対象カードの「完全削除」を実行すると、カード情報および添付画像ファイルがパソコンから消去されます。</li>
+          <li><strong>Microsoft Store 版の全データ削除</strong>: Windows の「設定」→「アプリ」→「インストールされているアプリ」から LocalBan をアンインストールすると、OS の標準機能により保存データも一括で消去されます。</li>
+          <li><strong>通常版の全データ削除</strong>: 同梱の <code>uninstall.bat</code> を実行するか、<code>%APPDATA%\LocalBan\</code> フォルダーを削除することで全データを消去できます。</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>5. 免責事項・知的財産権について</h3>
+        <ul>
+          <li><strong>非提携について</strong>: 本アプリは独立した個人開発プロジェクトであり、いかなる特定の第三者企業、法人、または既存のタスク管理製品・クラウドサービスとも提携、協賛、承認、または関連関係にありません。</li>
+          <li><strong>無保証・免責（AS-IS）</strong>: 本アプリは「現状有姿（AS-IS）」で提供され、明示または黙示を問わずいかなる保証も行いません。本アプリの使用または使用不能から生じるいかなる損害（データの消失・破損、業務の中断等を含む）についても、開発者は一切の責任を負いません。大切なデータは定期的にアプリ内の「データ管理」から外部ファイルへバックアップしてください。</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>6. お問い合わせ</h3>
+        <p>
+          本プライバシーポリシーや本アプリに関するお問い合わせは、Microsoft Store の本アプリ掲載ページ内サポート窓口よりご連絡ください。
+        </p>
+      </section>
+    </article>
+
+    <!-- English Policy -->
+    <article class="section-card" id="policy-en" lang="en">
+      <div class="section-header">
+        <h2 class="section-title">English</h2>
+      </div>
+
+      <section class="policy-block">
+        <h3>1. Overview</h3>
+        <p>
+          <strong>LocalBan</strong> ("the Application") is a completely offline, local-first personal Kanban board application for Windows, designed with user privacy and data ownership as its highest priorities.
+        </p>
+      </section>
+
+      <section class="policy-block">
+        <h3>2. Zero Data Collection &amp; No Telemetry</h3>
+        <p>
+          The Application <strong>does not collect, store, transmit, or share</strong> any personal information, usage analytics, task contents, attachments, crash reports, telemetry, or device identifiers.
+        </p>
+        <ul>
+          <li><strong>No External Network Communication</strong>: The Application contains no external server communication code, analytics SDKs, advertising modules, or tracking mechanisms.</li>
+          <li><strong>No Account Required</strong>: All features operate strictly offline on your local device without requiring user registration or authentication.</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>3. Local Data Storage</h3>
+        <p>
+          All data created or managed within the Application (boards, lists, cards, labels, checklists, image attachments, backups, application settings, and logs) is stored exclusively on your local Windows device:
+        </p>
+        <ul>
+          <li><strong>Standalone / Installer Edition</strong>: Stored under <code>%APPDATA%\LocalBan\</code> (<code>C:\Users\&lt;Username&gt;\AppData\Roaming\LocalBan\</code>).</li>
+          <li><strong>Microsoft Store Edition</strong>: Isolated under the Windows package cache directory (<code>%LOCALAPPDATA%\Packages\zyanpoyo.LocalBan_jcb2ksg0pnr1p\LocalCache\Roaming\LocalBan\</code>).</li>
+          <li>Neither the developer nor any third party has access to your local data.</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>4. Data Deletion</h3>
+        <p>You retain full control over your data at all times:</p>
+        <ul>
+          <li><strong>Within the Application</strong>: Permanently delete archived cards via the Archive screen.</li>
+          <li><strong>Microsoft Store Edition</strong>: Uninstalling the app via Windows Settings ("Installed apps") automatically removes the entire package data directory.</li>
+          <li><strong>Standalone / Installer Edition</strong>: Run <code>uninstall.bat</code> or delete the <code>%APPDATA%\LocalBan\</code> directory in File Explorer.</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>5. Disclaimer</h3>
+        <ul>
+          <li><strong>Non-Affiliation</strong>: The Application is an independent project and is not affiliated with, endorsed by, or connected to any third-party company or cloud task management service.</li>
+          <li><strong>Provided "AS IS"</strong>: The Application is provided "AS IS" without warranty of any kind. In no event shall the developer be liable for any damages or data loss arising from the use of the Application.</li>
+        </ul>
+      </section>
+
+      <section class="policy-block">
+        <h3>6. Contact</h3>
+        <p>
+          For questions regarding this Privacy Policy or the Application, please contact us through the support contact listed on the Microsoft Store product page.
+        </p>
+      </section>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <nav class="footer-nav" aria-label="フッターナビゲーション">
+        <a href="index.html">使い方</a>
+        <a href="privacy.html">プライバシーポリシー</a>
+      </nav>
+      <p class="footer-copy">© LocalBan Project</p>
+    </div>
+  </footer>
+</body>
+</html>

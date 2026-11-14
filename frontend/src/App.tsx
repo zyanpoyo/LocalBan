@@ -10,6 +10,7 @@ import {
   moveCard,
   shutdownServer,
   onSyncMessage,
+  onAttachmentUpdated,
   fetchAppSettings,
   completeCoachMark,
 } from './api';
@@ -75,8 +76,14 @@ export const App: React.FC = () => {
       loadData();
     });
 
+    // 外部エディタ（Watcher）での添付ファイル更新・新規追加のボード反映
+    const unlistenAttachment = onAttachmentUpdated(() => {
+      loadData();
+    });
+
     return () => {
       unsubscribeSync();
+      unlistenAttachment();
     };
   }, [loadData]);
 
@@ -116,6 +123,23 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  // ファイルの誤ドロップによるブラウザナビゲーションをグローバルに防止
+  useEffect(() => {
+    const handleGlobalDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    const handleGlobalDrop = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('dragover', handleGlobalDragOver);
+    window.addEventListener('drop', handleGlobalDrop);
+    return () => {
+      window.removeEventListener('dragover', handleGlobalDragOver);
+      window.removeEventListener('drop', handleGlobalDrop);
+    };
   }, []);
 
   // リスト操作

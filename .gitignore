@@ -17,6 +17,8 @@ frontend/.vite/
 # PyInstaller / Build / MSIX
 build/
 dist/
+bin/
+obj/
 *.exe
 *.manifest
 *.spec
@@ -56,6 +58,9 @@ desktop.ini
 *.pem
 *.key
 docs/microsoft_store_guide.md
+*.p12
+*credentials*.json
+service-account*.json
 
 # Store Promotional Assets (Screenshots, Banners, Artwork)
 assets/store/promotional/

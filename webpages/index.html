@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalBan - 使い方ガイド</title>
+  <meta name="description" content="Windows向けオフライン個人用カンバンボード「LocalBan」の使い方ガイド。カード操作、ショートカットキー、バックアップ方法を案内します。">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-link">
+        <img src="favicon.svg" alt="LocalBan" class="brand-icon" width="32" height="32">
+        <span class="brand-title">LocalBan</span>
+        <span class="brand-tag">オフライン</span>
+      </a>
+      <nav class="site-nav" aria-label="ページナビゲーション">
+        <a href="index.html" class="nav-link active" aria-current="page">使い方</a>
+        <a href="privacy.html" class="nav-link">プライバシーポリシー</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-top">
+        <span class="pill pill-emerald">インターネット接続不要</span>
+        <span class="pill pill-indigo">アカウント登録不要</span>
+        <span class="pill pill-slate">Windows 11 / 10 対応</span>
+      </div>
+      <h1 class="hero-title">自分のパソコン内だけで完結するタスク管理ボード</h1>
+      <p class="hero-summary">
+        作成したリストやカード、添付画像はすべてお使いのパソコン内に自動で保存されます。
+      </p>
+      <div class="hero-highlights">
+        <div class="highlight-item">
+          <div class="highlight-title">完全オフライン保存</div>
+          <p class="highlight-desc">外部への通信は一切行いません。業務のメモや個人のタスクも安心して記録できます。</p>
+        </div>
+        <div class="highlight-item">
+          <div class="highlight-title">素早いキーボード操作</div>
+          <p class="highlight-desc">マウスでのドラッグ移動だけでなく、キーボードだけでもカードの追加・移動が完結します。</p>
+        </div>
+        <div class="highlight-item">
+          <div class="highlight-title">自動バックアップ搭載</div>
+          <p class="highlight-desc">アプリ起動時に1日1回自動でバックアップを作成。手動でのファイル書き出し・復元にも対応しています。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. 基本操作 -->
+    <section class="section-card" id="basics">
+      <div class="section-header">
+        <h2 class="section-title">1. ボードとカードの基本操作</h2>
+      </div>
+      <div class="grid-2">
+        <div class="subcard">
+          <h3 class="subcard-title">リスト（列）の操作</h3>
+          <ul class="subcard-list">
+            <li>右端の「<strong>＋ リストを追加</strong>」から新しい列を作成</li>
+            <li>リスト名をクリックしてタイトルを直接変更</li>
+            <li>リスト上部のドラッグ操作で左右の並び順を変更</li>
+            <li>リストを削除しても、中のカードは消えずに自動で「アーカイブ」へ移動</li>
+          </ul>
+        </div>
+
+        <div class="subcard">
+          <h3 class="subcard-title">カードの操作</h3>
+          <ul class="subcard-list">
+            <li>各リスト下の「<strong>＋ カードを追加</strong>」または <kbd>C</kbd> キーで作成</li>
+            <li>ドラッグ＆ドロップで上下の並び替えや別リストへの移動</li>
+            <li>カードをクリック（または選択して <kbd>Enter</kbd>）で詳細画面を表示</li>
+            <li>詳細画面の「複製」から、内容・チェックリスト・画像ごとコピー可能</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. カード詳細の機能 -->
+    <section class="section-card" id="card-details">
+      <div class="section-header">
+        <h2 class="section-title">2. カード詳細で使える機能</h2>
+      </div>
+      <div class="grid-2">
+        <div class="subcard">
+          <h3 class="subcard-title">ラベル・チェックリスト</h3>
+          <ul class="subcard-list">
+            <li>色分けされたラベルを複数付けてタスクを分類</li>
+            <li>複数のチェックリストを追加し、達成率をバーで視覚的に確認</li>
+          </ul>
+        </div>
+
+        <div class="subcard">
+          <h3 class="subcard-title">画像添付・カバー画像</h3>
+          <ul class="subcard-list">
+            <li>ファイルのドラッグ＆ドロップ、またはコピーした画像の貼り付け（<kbd>Ctrl</kbd> + <kbd>V</kbd>）で添付</li>
+            <li>お気に入りの画像をカードの「カバー画像」に設定可能</li>
+          </ul>
+        </div>
+
+        <div class="subcard">
+          <h3 class="subcard-title">期限（日時設定）</h3>
+          <ul class="subcard-list">
+            <li>残り時間や完了状態に応じてバッジの色が自動で変化</li>
+          </ul>
+          <div class="badge-row">
+            <span class="due-badge due-done">完了（緑）</span>
+            <span class="due-badge due-soon">24時間以内（黄）</span>
+            <span class="due-badge due-overdue">期限超過（赤）</span>
+            <span class="due-badge due-normal">通常（グレー）</span>
+          </div>
+        </div>
+
+        <div class="subcard">
+          <h3 class="subcard-title">説明メモ</h3>
+          <ul class="subcard-list">
+            <li>見出し、箇条書き、表、色付きの注意書きボックスを使って見やすく整理</li>
+            <li>上部のツールバーからワンクリックで文字装飾を挿入</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. キーボードショートカット -->
+    <section class="section-card" id="shortcuts">
+      <div class="section-header">
+        <h2 class="section-title">3. キーボードショートカット</h2>
+        <span class="pill pill-slate">画面上で <kbd>?</kbd> キーを押すと一覧を表示</span>
+      </div>
+
+      <h3 class="sub-heading">ボード画面での操作</h3>
+      <div class="table-wrap">
+        <table class="info-table">
+          <thead>
+            <tr>
+              <th>キー</th>
+              <th>動作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>C</kbd> または <kbd>N</kbd></td>
+              <td>選択中のリスト（未選択時は左端のリスト）でカード追加を開始</td>
+            </tr>
+            <tr>
+              <td><kbd>1</kbd> 〜 <kbd>9</kbd></td>
+              <td>左から 1〜9 番目のリストを指定してカード追加を開始</td>
+            </tr>
+            <tr>
+              <td><kbd>←</kbd> <kbd>→</kbd> / <kbd>↑</kbd> <kbd>↓</kbd></td>
+              <td>リストおよびカードの選択移動</td>
+            </tr>
+            <tr>
+              <td><kbd>Enter</kbd> または <kbd>Space</kbd></td>
+              <td>選択中のカードの詳細を開く</td>
+            </tr>
+            <tr>
+              <td><kbd>?</kbd></td>
+              <td>ショートカットキー一覧を開く</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="sub-heading">カード作成フォーム入力中</h3>
+      <div class="table-wrap">
+        <table class="info-table">
+          <thead>
+            <tr>
+              <th>キー</th>
+              <th>動作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>Enter</kbd></td>
+              <td>カードを保存し、続けて次のカードを入力（連続作成）</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td>
+              <td>カードを保存して入力欄を閉じる</td>
+            </tr>
+            <tr>
+              <td><kbd>Shift</kbd> + <kbd>Enter</kbd></td>
+              <td>カードを保存し、そのまま詳細画面を開く</td>
+            </tr>
+            <tr>
+              <td><kbd>Esc</kbd></td>
+              <td>入力をキャンセルして閉じる</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="sub-heading">カード詳細画面での操作</h3>
+      <div class="table-wrap">
+        <table class="info-table">
+          <thead>
+            <tr>
+              <th>キー</th>
+              <th>動作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>E</kbd></td>
+              <td>説明メモの編集を開始</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd></td>
+              <td>説明メモの「編集 ⇄ プレビュー」を切り替え</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td>
+              <td>説明メモを保存</td>
+            </tr>
+            <tr>
+              <td><kbd>D</kbd></td>
+              <td>期限の設定欄を開く</td>
+            </tr>
+            <tr>
+              <td><kbd>T</kbd> または <kbd>-</kbd></td>
+              <td>チェックリストを追加</td>
+            </tr>
+            <tr>
+              <td><kbd>C</kbd></td>
+              <td>カードの複製メニューを開く</td>
+            </tr>
+            <tr>
+              <td><kbd>A</kbd></td>
+              <td>カードをアーカイブへ移動</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. メモ欄の装飾ガイド -->
+    <section class="section-card" id="formatting">
+      <div class="section-header">
+        <h2 class="section-title">4. 説明メモの装飾方法</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="info-table">
+          <thead>
+            <tr>
+              <th>装飾の種類</th>
+              <th>ショートカット</th>
+              <th>書き方</th>
+              <th>表示イメージ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>太字</td>
+              <td><kbd>Ctrl</kbd> + <kbd>B</kbd></td>
+              <td><code>**太字**</code></td>
+              <td><strong>太字</strong></td>
+            </tr>
+            <tr>
+              <td>斜体</td>
+              <td><kbd>Ctrl</kbd> + <kbd>I</kbd></td>
+              <td><code>*斜体*</code></td>
+              <td><em>斜体</em></td>
+            </tr>
+            <tr>
+              <td>取り消し線</td>
+              <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd></td>
+              <td><code>~~取り消し線~~</code></td>
+              <td><del>取り消し線</del></td>
+            </tr>
+            <tr>
+              <td>コード強調</td>
+              <td><kbd>Ctrl</kbd> + <kbd>E</kbd></td>
+              <td><code>`文字`</code></td>
+              <td><code>文字</code></td>
+            </tr>
+            <tr>
+              <td>リンク</td>
+              <td><kbd>Ctrl</kbd> + <kbd>K</kbd></td>
+              <td><code>[表示名](URL)</code></td>
+              <td>リンク文字</td>
+            </tr>
+            <tr>
+              <td>補足ボックス（緑）</td>
+              <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd></td>
+              <td><pre class="code-sample">:::note info
+補足メモ
+:::</pre></td>
+              <td><div class="note-preview note-info">補足メモ</div></td>
+            </tr>
+            <tr>
+              <td>注意ボックス（黄）</td>
+              <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd></td>
+              <td><pre class="code-sample">:::note warn
+注意事項
+:::</pre></td>
+              <td><div class="note-preview note-warn">注意事項</div></td>
+            </tr>
+            <tr>
+              <td>警告ボックス（赤）</td>
+              <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>3</kbd></td>
+              <td><pre class="code-sample">:::note alert
+重要な警告
+:::</pre></td>
+              <td><div class="note-preview note-alert">重要な警告</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. アーカイブと削除・データ管理 -->
+    <section class="section-card" id="data-and-window">
+      <div class="section-header">
+        <h2 class="section-title">5. 安全な削除・バックアップ・画面の終了</h2>
+      </div>
+      <div class="grid-3">
+        <div class="subcard">
+          <h3 class="subcard-title">2段階の安全な削除</h3>
+          <ul class="subcard-list">
+            <li>カードを削除すると、まずは画面上部の「<strong>アーカイブ</strong>」に保管されます</li>
+            <li>「アーカイブ」画面からいつでも元のリストへ復元できます</li>
+            <li>完全に消去したい場合のみ、「アーカイブ」内で「完全削除」を実行します</li>
+          </ul>
+        </div>
+
+        <div class="subcard">
+          <h3 class="subcard-title">バックアップと引き継ぎ</h3>
+          <ul class="subcard-list">
+            <li>1日1回、起動時に自動でバックアップを作成（最新7日分を自動保持）</li>
+            <li>画面上部の「<strong>データ管理</strong>」→「外部ファイルへ保存」で、画像を含む全データを1つのファイル（<code>.localban</code>）に保存可能</li>
+            <li>別のパソコンへ移行する際は「外部ファイルから復元」でファイルを読み込むだけで完了します</li>
+          </ul>
+        </div>
+
+        <div class="subcard">
+          <h3 class="subcard-title">閉じる（×）ボタンの動作</h3>
+          <ul class="subcard-list">
+            <li>画面上部の「<strong>×: トレイ格納</strong> / <strong>×: 完全終了</strong>」ボタンで動作を切り替えられます</li>
+            <li>「トレイ格納」時は、右上の「×」を押すと画面右下の通知領域（タスクトレイ）に格納され、アイコンクリックですぐに再表示できます</li>
+            <li>アプリを完全に終了する場合は、画面右上の「<strong>終了</strong>」ボタンを押してください</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <nav class="footer-nav" aria-label="フッターナビゲーション">
+        <a href="index.html">使い方</a>
+        <a href="privacy.html">プライバシーポリシー</a>
+      </nav>
+      <p class="footer-copy">© LocalBan Project</p>
+    </div>
+  </footer>
+</body>
+</html>

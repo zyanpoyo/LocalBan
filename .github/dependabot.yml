@@ -1,0 +1,28 @@
+# =============================================================================
+# LocalBan - GitHub Dependabot Configuration
+# 普段の通知ノイズを抑えるため、通常のバージョン更新チェックは月1回 (monthly) に制限。
+# ※ 脆弱性検知時のセキュリティアップデート (Dependabot security updates) は
+#    スケジュールに関わらず発見次第即座に自動PRが作成されます。
+# =============================================================================
+
+version: 2
+updates:
+  # 1. Frontend (npm)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # 2. Backend (Rust / Cargo)
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "rust"

@@ -12,6 +12,7 @@ import {
   AppSettings,
 } from './types';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 // 保存状態リスナー
 type StatusListener = (status: SaveStatus) => void;
@@ -139,9 +140,11 @@ export async function updateCard(
     id,
     title: payload.title !== undefined ? payload.title : null,
     description: payload.description !== undefined ? payload.description : null,
-    dueDate: payload.due_date !== undefined ? payload.due_date : null,
+    dueDate: payload.due_date ?? null,
+    clearDueDate: payload.due_date === null,
     isDueComplete: payload.is_due_complete !== undefined ? payload.is_due_complete : null,
-    coverAttachmentId: payload.cover_attachment_id !== undefined ? payload.cover_attachment_id : null,
+    coverAttachmentId: payload.cover_attachment_id ?? null,
+    clearCover: payload.cover_attachment_id === null,
     labelIds: payload.label_ids !== undefined ? payload.label_ids : null,
   }, true);
   notifySync('UPDATE_CARD');
@@ -226,6 +229,27 @@ export async function deleteLabel(id: string): Promise<void> {
 }
 
 // Attachments
+export async function uploadCardCover(cardId: string, file: File): Promise<Card> {
+  updateStatus('saving');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = Array.from(new Uint8Array(arrayBuffer));
+    const card = await invoke<Card>('upload_card_cover', {
+      cardId,
+      filename: file.name,
+      mimeType: file.type || 'image/png',
+      data: bytes,
+    });
+    updateStatus('saved');
+    notifySync('UPDATE_CARD');
+    return card;
+  } catch (err: any) {
+    updateStatus('error');
+    const message = typeof err === 'string' ? err : err?.message || 'カバー画像のアップロードに失敗しました';
+    throw new Error(message);
+  }
+}
+
 export async function uploadAttachment(cardId: string, file: File): Promise<Attachment> {
   updateStatus('saving');
   try {
@@ -268,6 +292,102 @@ export async function deleteAttachment(id: string): Promise<void> {
   notifySync('DELETE_ATTACHMENT');
 }
 
+export async function getCard(id: string): Promise<Card> {
+  return callCommand<Card>('get_card', { id });
+}
+
+export async function createEmptyAttachment(cardId: string, extension: 'md' | 'txt'): Promise<Attachment> {
+  updateStatus('saving');
+  try {
+    const att = await invoke<Attachment>('create_empty_attachment', { cardId, extension });
+    updateStatus('saved');
+    notifySync('CREATE_ATTACHMENT');
+    return att;
+  } catch (err: any) {
+    updateStatus('error');
+    const message = typeof err === 'string' ? err : err?.message || 'ファイル作成に失敗しました';
+    throw new Error(message);
+  }
+}
+
+export async function renameAttachment(id: string, newFilename: string): Promise<Attachment> {
+  updateStatus('saving');
+  try {
+    const att = await invoke<Attachment>('rename_attachment', { id, newFilename });
+    updateStatus('saved');
+    notifySync('RENAME_ATTACHMENT');
+    return att;
+  } catch (err: any) {
+    updateStatus('error');
+    const message = typeof err === 'string' ? err : err?.message || '名前の変更に失敗しました';
+    throw new Error(message);
+  }
+}
+
+export async function openAttachment(id: string, editor?: string): Promise<void> {
+  try {
+    await invoke('open_attachment', { id, editor: editor ?? null });
+  } catch (err: any) {
+    const message = typeof err === 'string' ? err : err?.message || 'ファイルを開けませんでした';
+    throw new Error(message);
+  }
+}
+
+export async function openCardFolder(cardId: string, editor?: string): Promise<void> {
+  try {
+    await invoke('open_card_folder', { cardId, editor: editor ?? null });
+  } catch (err: any) {
+    const message = typeof err === 'string' ? err : err?.message || 'フォルダを開けませんでした';
+    throw new Error(message);
+  }
+}
+
+export async function revealCardFolderInExplorer(cardId: string): Promise<void> {
+  try {
+    await invoke('reveal_card_folder_in_explorer', { cardId });
+  } catch (err: any) {
+    const message =
+      typeof err === 'string' ? err : err?.message || 'エクスプローラーを開けませんでした';
+    throw new Error(message);
+  }
+}
+
+export async function restoreAttachmentBackup(id: string): Promise<Attachment> {
+  updateStatus('saving');
+  try {
+    const att = await invoke<Attachment>('restore_attachment_backup', { id });
+    updateStatus('saved');
+    notifySync('RESTORE_ATTACHMENT_BACKUP');
+    return att;
+  } catch (err: any) {
+    updateStatus('error');
+    const message = typeof err === 'string' ? err : err?.message || '復元に失敗しました';
+    throw new Error(message);
+  }
+}
+
+export interface AttachmentUpdatedPayload {
+  attachment_id: string;
+  card_id: string;
+  file_size: number;
+  has_backup: boolean;
+  created_attachment?: Attachment;
+}
+
+export function onAttachmentUpdated(callback: (payload: AttachmentUpdatedPayload) => void) {
+  let unlisten: (() => void) | null = null;
+  listen<AttachmentUpdatedPayload>('attachment-updated', (event) => {
+    callback(event.payload);
+  }).then((fn) => {
+    unlisten = fn;
+  });
+
+  return () => {
+    if (unlisten) unlisten();
+  };
+}
+
+
 // Archive Management
 export async function fetchArchivedCards(): Promise<Card[]> {
   return callCommand<Card[]>('get_archived_cards');
@@ -291,6 +411,17 @@ export async function fetchAppSettings(): Promise<AppSettings> {
 
 export async function updateAppSettings(closeToTray: boolean): Promise<AppSettings> {
   return callCommand<AppSettings>('update_app_settings', { closeToTray }, true);
+}
+
+
+export async function pickEditorExecutable(): Promise<string | null> {
+  return invoke<string | null>('pick_editor_executable');
+}
+
+export async function setPreferredEditor(editor: string | null): Promise<AppSettings> {
+  const settings = await callCommand<AppSettings>('set_preferred_editor', { editor }, true);
+  notifySync('UPDATE_SETTINGS');
+  return settings;
 }
 
 export async function completeCoachMark(): Promise<AppSettings> {
