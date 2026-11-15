@@ -55,7 +55,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, onOpenCoa
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-800">
-                LocalBan v2.2.3 — プライバシーポリシー・免責事項
+                LocalBan v2.2.4 — プライバシーポリシー・免責事項
               </h2>
               <p className="text-xs text-slate-500">
                 LocalBan Project | ライセンス: MIT License
