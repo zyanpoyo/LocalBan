@@ -29,11 +29,21 @@ input, textarea, [contenteditable="true"] {
 /* =========================================================
    CodeMirror 6 - Markdown Live Preview スタイル
    ========================================================= */
+.cm-localban-wrapper {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
 .cm-localban-wrapper .cm-editor {
   min-height: 280px;
   outline: none !important;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: transparent;
+}
+
+.cm-localban-wrapper.cm-zen-editor .cm-editor {
+  height: 100%;
+  min-height: 100%;
 }
 
 .cm-localban-wrapper .cm-scroller {
@@ -42,10 +52,26 @@ input, textarea, [contenteditable="true"] {
   line-height: 1.7;
 }
 
+.cm-localban-wrapper.cm-zen-editor .cm-scroller {
+  min-height: 100%;
+  padding: 1.5rem 2rem;
+  line-height: 1.8;
+}
+
 .cm-localban-wrapper .cm-content {
   min-height: 256px;
   padding: 0;
   caret-color: #4f46e5;
+}
+
+.cm-localban-wrapper.cm-zen-editor .cm-content {
+  min-height: 100%;
+  padding-bottom: 35vh;
+}
+
+.cm-localban-wrapper.cm-zen-centered .cm-content {
+  max-width: 58rem;
+  margin-inline: auto;
 }
 
 .cm-localban-wrapper .cm-line {
@@ -229,4 +255,19 @@ input, textarea, [contenteditable="true"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.75rem;
   opacity: 0.65;
+}
+
+/* 区切り線 (---) */
+.cm-lp-hr-line {
+  position: relative;
+  height: 1.5em;
+}
+
+.cm-lp-hr-line::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 2px solid #cbd5e1;
 }

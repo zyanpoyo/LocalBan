@@ -4,12 +4,60 @@ export type MarkdownSegment =
   | { type: 'markdown'; content: string }
   | { type: 'note'; variant: NoteVariant; content: string };
 
+export interface MarkdownHeadingItem {
+  lineNumber: number;
+  level: 1 | 2 | 3;
+  text: string;
+}
+
+/**
+ * Markdownテキストから見出し (H1〜H3) を抽出する（コードフェンス内は除外）
+ */
+export const extractMarkdownHeadings = (markdown: string): MarkdownHeadingItem[] => {
+  const lines = markdown.split(/\r?\n/);
+  const headings: MarkdownHeadingItem[] = [];
+  let inCodeFence = false;
+  let fenceMarker = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0];
+      if (!inCodeFence) {
+        inCodeFence = true;
+        fenceMarker = marker;
+      } else if (marker === fenceMarker) {
+        inCodeFence = false;
+        fenceMarker = '';
+      }
+      continue;
+    }
+    if (inCodeFence) continue;
+
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length as 1 | 2 | 3;
+      const rawText = headingMatch[2]
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/(\*\*|__|~~|`|\*)/g, '')
+        .trim();
+      if (rawText) {
+        headings.push({ lineNumber: i + 1, level, text: rawText });
+      }
+    }
+  }
+
+  return headings;
+};
+
 export const MARKDOWN_SHORTCUT_ITEMS: {
   type: string;
   label: string;
   shortcut: string;
   syntax: string;
 }[] = [
+  { type: 'toggle-zen', label: '集中執筆 (Zen) モード切替', shortcut: 'Ctrl+Shift+F', syntax: '拡大/通常切替' },
   { type: 'toggle-preview', label: 'Live編集 ⇄ 全体プレビュー', shortcut: 'Ctrl+Shift+P', syntax: 'モード切替' },
   { type: 'save-desc', label: '説明文を即時保存 (自動保存対応)', shortcut: 'Ctrl+Enter', syntax: '即時Flush' },
   { type: 'smart-list', label: 'リスト・引用の自動継続 / 空行解除', shortcut: 'Enter', syntax: '- / 1. / - [ ] / >' },

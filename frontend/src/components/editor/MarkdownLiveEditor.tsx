@@ -7,11 +7,17 @@ import { smartTypingExtension } from './smartTypingExtension';
 import { livePreviewExtension } from './livePreviewExtension';
 
 export type MarkdownFormatType =
+  | 'h1'
+  | 'h2'
+  | 'h3'
   | 'bold'
   | 'italic'
   | 'strikethrough'
   | 'code'
   | 'codeblock'
+  | 'quote'
+  | 'hr'
+  | 'table'
   | 'link'
   | 'bullet-list'
   | 'task-list'
@@ -23,6 +29,7 @@ export interface MarkdownLiveEditorHandle {
   focus: () => void;
   blur: () => void;
   applyFormat: (type: MarkdownFormatType) => void;
+  scrollToLine: (lineNumber: number) => void;
 }
 
 interface MarkdownLiveEditorProps {
@@ -38,6 +45,12 @@ interface MarkdownLiveEditorProps {
   onRequestSaveFlush?: () => void;
   /** Ctrl+Shift+P によるプレビューモード切替要求 */
   onTogglePreviewMode?: () => void;
+  /** Ctrl+Shift+F による集中執筆モード切替要求 */
+  onToggleZenMode?: () => void;
+  /** 集中執筆モード状態 */
+  isZenMode?: boolean;
+  /** 集中執筆モード1画面表示時の本文中央幅制限 */
+  isCenteredWidth?: boolean;
   placeholder?: string;
 }
 
@@ -179,6 +192,21 @@ function executeMarkdownFormat(view: EditorView, type: MarkdownFormatType): void
   };
 
   switch (type) {
+    case 'h1':
+    case 'h2':
+    case 'h3': {
+      const levelPrefix = type === 'h1' ? '# ' : type === 'h2' ? '## ' : '### ';
+      const exactRegex =
+        type === 'h1' ? /^#\s+/ : type === 'h2' ? /^##\s+/ : /^###\s+/;
+      toggleLineListPrefix(view, {
+        prefix: levelPrefix,
+        emptyLineDefault: `${levelPrefix}見出し`,
+        samePrefixRegex: exactRegex,
+        otherPrefixRegex: /^#{1,6}\s+/,
+        userEvent: `input.format.${type}`,
+      });
+      break;
+    }
     case 'bold':
       applyInlineWrapper('**', '太字');
       break;
@@ -194,6 +222,33 @@ function executeMarkdownFormat(view: EditorView, type: MarkdownFormatType): void
     case 'codeblock':
       applyBlockWrapper('```', '```', 'コード');
       break;
+    case 'quote':
+      toggleLineListPrefix(view, {
+        prefix: '> ',
+        emptyLineDefault: '> 引用',
+        samePrefixRegex: /^>\s*/,
+        otherPrefixRegex: /$^/,
+        userEvent: 'input.format.quote',
+      });
+      break;
+    case 'hr': {
+      const prefix = start > 0 && docText[start - 1] !== '\n' ? '\n' : '';
+      const suffix = end < docText.length && docText[end] !== '\n' ? '\n' : '';
+      const inserted = `${prefix}---\n${suffix}`;
+      const caretPos = start + inserted.length;
+      dispatchFormat(inserted, start, end, caretPos, caretPos);
+      break;
+    }
+    case 'table': {
+      const prefix = start > 0 && docText[start - 1] !== '\n' ? '\n\n' : start > 0 && docText[start - 2] !== '\n' ? '\n' : '';
+      const suffix = end < docText.length && docText[end] !== '\n' ? '\n' : '';
+      const firstHeader = '見出し1';
+      const tableTemplate = `| ${firstHeader} | 見出し2 | 見出し3 |\n| --- | --- | --- |\n| 内容1 | 内容2 | 内容3 |\n`;
+      const inserted = `${prefix}${tableTemplate}${suffix}`;
+      const selStart = start + prefix.length + 2;
+      dispatchFormat(inserted, start, end, selStart, selStart + firstHeader.length);
+      break;
+    }
     case 'link': {
       const isUrl = /^https?:\/\/\S+$/i.test(selected.trim());
       if (isUrl) {
@@ -249,6 +304,9 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
       onFocus,
       onRequestSaveFlush,
       onTogglePreviewMode,
+      onToggleZenMode,
+      isZenMode = false,
+      isCenteredWidth = false,
       placeholder = 'Markdown形式でカードの詳細な説明を入力... (インラインプレビュー・スマート入力対応)',
     },
     ref
@@ -261,12 +319,14 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
     const onFocusRef = useRef(onFocus);
     const onRequestSaveFlushRef = useRef(onRequestSaveFlush);
     const onTogglePreviewModeRef = useRef(onTogglePreviewMode);
+    const onToggleZenModeRef = useRef(onToggleZenMode);
 
     useEffect(() => {
       onChangeRef.current = onChange;
       onFocusRef.current = onFocus;
       onRequestSaveFlushRef.current = onRequestSaveFlush;
       onTogglePreviewModeRef.current = onTogglePreviewMode;
+      onToggleZenModeRef.current = onToggleZenMode;
     });
 
     useImperativeHandle(ref, () => ({
@@ -280,6 +340,17 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
         if (viewRef.current) {
           executeMarkdownFormat(viewRef.current, type);
         }
+      },
+      scrollToLine: (lineNumber: number) => {
+        const view = viewRef.current;
+        if (!view) return;
+        const clampedLine = Math.max(1, Math.min(lineNumber, view.state.doc.lines));
+        const line = view.state.doc.line(clampedLine);
+        view.dispatch({
+          selection: { anchor: line.from },
+          effects: EditorView.scrollIntoView(line.from, { y: 'start', yMargin: 48 }),
+        });
+        view.focus();
       },
     }));
 
@@ -357,6 +428,14 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
           run: (view) => {
             if (view.composing) return false;
             onTogglePreviewModeRef.current?.();
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-f',
+          run: (view) => {
+            if (view.composing) return false;
+            onToggleZenModeRef.current?.();
             return true;
           },
         },
@@ -458,7 +537,9 @@ export const MarkdownLiveEditor = forwardRef<MarkdownLiveEditorHandle, MarkdownL
     return (
       <div
         ref={containerRef}
-        className="cm-localban-wrapper w-full min-h-[280px] max-h-[60vh] overflow-y-auto bg-slate-50 hover:bg-white focus-within:bg-white border border-slate-200 rounded-xl focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-400/20 transition-all text-sm"
+        className={`cm-localban-wrapper w-full overflow-y-auto bg-slate-50 hover:bg-white focus-within:bg-white border border-slate-200 rounded-xl focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-400/20 transition-all text-sm ${
+          isZenMode ? 'cm-zen-editor flex-1 min-h-0 h-full' : 'min-h-[280px] max-h-[60vh]'
+        } ${isZenMode && isCenteredWidth ? 'cm-zen-centered' : ''}`}
       />
     );
   }

@@ -45,6 +45,7 @@ LocalBan では、マウスを使わずにキーボードのみでカード作�
 
 | ショートカットキー (Win) | ショートカットキー (Mac) | 操作内容 | 備考 |
 | :--- | :--- | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> | **集中執筆（Zen）モード切替** | サイドバーや下部セクションを一時的に隠し、説明欄を画面いっぱいに拡大します（集中モード中は左右2分割プレビューや目次アウトラインパネルを利用可能）。 |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | **説明文「編集 ⇄ プレビュー」切替** | GitHub 準拠のショートカットです。説明欄の入力中・プレビュー確認中のどちらでもトグル切り替えできます。編集に戻った際は自動でテキストエリアにフォーカスします。 |
 | <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | <kbd>Cmd</kbd> + <kbd>Return</kbd> | **説明文を保存** | 説明文の編集内容を保存確定します（編集モード・プレビューモードどちらからでも実行可能）。 |
 | <kbd>e</kbd> | <kbd>e</kbd> | **説明文の編集モード開始** | 説明欄を「編集」モードに切り替え、テキストエリアに直接フォーカスします。 |
@@ -52,7 +53,7 @@ LocalBan では、マウスを使わずにキーボードのみでカード作�
 | <kbd>t</kbd> または <kbd>-</kbd> | <kbd>t</kbd> または <kbd>-</kbd> | **チェックリスト追加** | チェックリストの新規追加フォームを開いてタイトル入力欄にフォーカスします。 |
 | <kbd>c</kbd> | <kbd>c</kbd> | **カード複製ダイアログ表示** | カード複製セクションを展開します。 |
 | <kbd>a</kbd> | <kbd>a</kbd> | **カードをアーカイブ** | カードをアーカイブに退避し、モーダルを閉じます。 |
-| <kbd>Escape</kbd> | <kbd>Escape</kbd> | **段階的キャンセル / 閉じる** | 画像プレビュー表示中はその解除、テキスト入力中はフォーカス解除（blur）、それ以外では詳細モーダル自体を閉じます。 |
+| <kbd>Escape</kbd> | <kbd>Escape</kbd> | **段階的キャンセル / 閉じる** | 画像プレビュー・ヘルプ・ダイアログの解除 → テキスト入力中はフォーカス解除（blur） → 集中執筆（Zen）モード中は通常モーダル表示へ復帰 → それ以外で詳細モーダル自体を閉じます。 |
 
 ※ <kbd>e</kbd> / <kbd>d</kbd> / <kbd>t</kbd> / <kbd>c</kbd> / <kbd>a</kbd> などの単一キーショートカットは、テキストボックス等への文字入力中には誤動作しないよう制御されています。
 
@@ -71,6 +72,8 @@ LocalBan では、マウスを使わずにキーボードのみでカード作�
 | **インラインコード** | <kbd>Ctrl</kbd> + <kbd>E</kbd> | <kbd>Cmd</kbd> + <kbd>E</kbd> | `` `コード` `` |
 | **コードブロック** | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd> | ```` ``` ```` |
 | **リンク挿入** | <kbd>Ctrl</kbd> + <kbd>K</kbd> | <kbd>Cmd</kbd> + <kbd>K</kbd> | `[テキスト](url)` |
+| **箇条書きリスト** | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>U</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>U</kbd> | `- 項目` |
+| **チェックボックス / タスク** | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd> | `- [ ] タスク` |
 | **Qiitaノート (info)** | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>1</kbd> | `:::note info` |
 | **Qiitaノート (warn)** | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>2</kbd> | `:::note warn` |
 | **Qiitaノート (alert)** | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>3</kbd> | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>3</kbd> | `:::note alert` |

@@ -262,7 +262,22 @@ function buildLivePreviewDecorations(view: EditorView, activeLines: Set<number>)
 
     let contentStartOffset = 0;
 
-    // 3. 見出し (# 〜 ######)
+    // 3. 区切り線 (--- / *** / ___)
+    if (/^\s*(?:---+|\*\*\*+|___+)\s*$/.test(text)) {
+      pending.push({
+        from: line.from,
+        to: line.from,
+        deco: Decoration.line({ class: 'cm-lp-hr-line' }),
+      });
+      pending.push({
+        from: line.from,
+        to: line.to,
+        deco: Decoration.replace({}),
+      });
+      continue;
+    }
+
+    // 4. 見出し (# 〜 ######)
     const headingMatch = text.match(/^(#{1,6})(\s+)(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;

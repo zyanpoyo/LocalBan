@@ -32,7 +32,7 @@ import {
   toLocalDatetimeString,
   getTodayDateString,
 } from '../utils/dateFormat';
-import { CardDescriptionSection } from './card-modal/CardDescriptionSection';
+import { CardDescriptionSection, DescViewMode } from './card-modal/CardDescriptionSection';
 import { CardChecklistSection } from './card-modal/CardChecklistSection';
 import { CardAttachmentSection } from './card-modal/CardAttachmentSection';
 import { CardSidebar } from './card-modal/CardSidebar';
@@ -75,7 +75,8 @@ export const CardModal: React.FC<CardModalProps> = ({
     debounceMs: 500,
   });
 
-  const [descMode, setDescMode] = useState<'edit' | 'preview'>('edit');
+  const [descMode, setDescMode] = useState<DescViewMode>('edit');
+  const [isZenMode, setIsZenMode] = useState(false);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
 
@@ -227,18 +228,36 @@ export const CardModal: React.FC<CardModalProps> = ({
     setIsEditingDesc(false);
   };
 
-  // 編集 ⇄ プレビュー モードのトグル切替 (Ctrl+Shift+P)
-  const toggleDescMode = () => {
-    if (descMode === 'edit') {
-      setDescMode('preview');
+  const selectDescMode = (mode: DescViewMode) => {
+    setDescMode(mode);
+    if (mode === 'preview') {
       setShowShortcutHelp(false);
     } else {
-      setDescMode('edit');
       setIsEditingDesc(true);
       requestAnimationFrame(() => {
         editorRef.current?.focus();
       });
     }
+  };
+
+  // 編集 ⇄ プレビュー モードのトグル切替 (Ctrl+Shift+P)
+  const toggleDescMode = () => {
+    if (descMode === 'preview') {
+      selectDescMode('edit');
+    } else {
+      selectDescMode('preview');
+    }
+  };
+
+  // 集中執筆 (Zen) モードのトグル切替 (Ctrl+Shift+F)
+  const toggleZenMode = () => {
+    setIsZenMode((prev) => {
+      const next = !prev;
+      if (!next && descMode === 'split') {
+        setDescMode('edit');
+      }
+      return next;
+    });
   };
 
   // Markdown 装飾・テンプレート挿入ヘルパー (CodeMirror トランザクション経由)
@@ -487,6 +506,13 @@ export const CardModal: React.FC<CardModalProps> = ({
         return;
       }
 
+      // 1b. Ctrl+Shift+F: 集中執筆 (Zen) モード切替 (モーダル内どこでも有効)
+      if (isMod && e.shiftKey && !e.altKey && key === 'f') {
+        e.preventDefault();
+        toggleZenMode();
+        return;
+      }
+
       // 2. Ctrl+Enter: 説明文の変更を即時フラッシュ保存
       if (isMod && !e.shiftKey && !e.altKey && e.key === 'Enter') {
         if (isEditingDesc || description !== (currentCard.description || '')) {
@@ -519,6 +545,8 @@ export const CardModal: React.FC<CardModalProps> = ({
           setShowAddChecklist(false);
         } else if (isInputFocused && target) {
           target.blur();
+        } else if (isZenMode) {
+          toggleZenMode();
         } else {
           void handleSafeClose();
         }
@@ -568,7 +596,11 @@ export const CardModal: React.FC<CardModalProps> = ({
       {/* モーダル枠 */}
       <div
         ref={modalRef}
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className={`bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 transition-all ${
+          isZenMode
+            ? 'w-[96dvw] max-w-[1600px] h-[94dvh] max-h-[94dvh]'
+            : 'w-full max-w-5xl max-h-[92vh]'
+        }`}
       >
         {/* モーダルヘッダー */}
         <div className="p-4 sm:p-5 border-b border-slate-200/80 flex items-start justify-between gap-4 bg-slate-50/50">
@@ -617,11 +649,17 @@ export const CardModal: React.FC<CardModalProps> = ({
         </div>
 
         {/* モーダルボディ */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div
+          className={
+            isZenMode
+              ? 'flex-1 min-h-0 flex flex-col p-4 sm:p-5 overflow-hidden'
+              : 'flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-4 gap-6'
+          }
+        >
           {/* 左側メインエリア (説明, チェックリスト, 添付) */}
-          <div className="md:col-span-3 space-y-6">
+          <div className={isZenMode ? 'flex-1 min-h-0 flex flex-col' : 'md:col-span-3 space-y-6'}>
             {/* ラベル表示 */}
-            {currentCard.labels.length > 0 && (
+            {!isZenMode && currentCard.labels.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                   ラベル
@@ -641,27 +679,19 @@ export const CardModal: React.FC<CardModalProps> = ({
               </div>
             )}
 
-            {/* 説明欄 (Markdown Live Preview + Smart Typing 対応) */}
+            {/* 説明欄 (Markdown Live Preview + Smart Typing + 集中執筆モード対応) */}
             <CardDescriptionSection
               cardId={currentCard.id}
               description={description}
               saveState={saveState}
               descMode={descMode}
+              isZenMode={isZenMode}
               showShortcutHelp={showShortcutHelp}
               editorRef={editorRef}
               onDescriptionChange={handleDescriptionChange}
-              onSelectEditMode={() => {
-                setDescMode('edit');
-                setIsEditingDesc(true);
-                requestAnimationFrame(() => {
-                  editorRef.current?.focus();
-                });
-              }}
-              onSelectPreviewMode={() => {
-                setDescMode('preview');
-                setShowShortcutHelp(false);
-              }}
+              onSelectDescMode={selectDescMode}
               onTogglePreviewMode={toggleDescMode}
+              onToggleZenMode={toggleZenMode}
               onToggleShortcutHelp={() => setShowShortcutHelp((prev) => !prev)}
               onCloseShortcutHelp={() => setShowShortcutHelp(false)}
               onApplyMarkdownFormat={applyMarkdownFormat}
@@ -669,59 +699,65 @@ export const CardModal: React.FC<CardModalProps> = ({
               onRequestSaveFlush={() => void handleSaveDescription()}
             />
 
-            {/* チェックリスト */}
-            <CardChecklistSection
-              checklists={currentCard.checklists}
-              onDeleteChecklist={(clId) => void handleDeleteChecklist(clId)}
-              onAddChecklistItem={handleAddChecklistItem}
-              onToggleItemComplete={(item) => void handleToggleItemComplete(item)}
-              onDeleteItem={(clId, itemId) => void handleDeleteItem(clId, itemId)}
-            />
+            {!isZenMode && (
+              <>
+                {/* チェックリスト */}
+                <CardChecklistSection
+                  checklists={currentCard.checklists}
+                  onDeleteChecklist={(clId) => void handleDeleteChecklist(clId)}
+                  onAddChecklistItem={handleAddChecklistItem}
+                  onToggleItemComplete={(item) => void handleToggleItemComplete(item)}
+                  onDeleteItem={(clId, itemId) => void handleDeleteItem(clId, itemId)}
+                />
 
-            {/* 添付ファイル & 画像 */}
-            <CardAttachmentSection
-              attachments={currentCard.attachments}
-              onFileUpload={(files) => void handleFileUpload(files)}
-              onCreateFile={handleCreateFile}
-              onRenameAttachment={handleRenameAttachment}
-              onOpenAttachment={handleOpenAttachment}
-              onOpenCardFolder={handleOpenCardFolder}
-              onRevealCardFolder={handleRevealCardFolder}
-              onRestoreBackup={handleRestoreBackup}
-              onDeleteAttachment={(attId) => void handleDeleteAttachment(attId)}
-              onPreviewImage={(url) => setPreviewImageUrl(url)}
-            />
+                {/* 添付ファイル & 画像 */}
+                <CardAttachmentSection
+                  attachments={currentCard.attachments}
+                  onFileUpload={(files) => void handleFileUpload(files)}
+                  onCreateFile={handleCreateFile}
+                  onRenameAttachment={handleRenameAttachment}
+                  onOpenAttachment={handleOpenAttachment}
+                  onOpenCardFolder={handleOpenCardFolder}
+                  onRevealCardFolder={handleRevealCardFolder}
+                  onRestoreBackup={handleRestoreBackup}
+                  onDeleteAttachment={(attId) => void handleDeleteAttachment(attId)}
+                  onPreviewImage={(url) => setPreviewImageUrl(url)}
+                />
+              </>
+            )}
           </div>
 
           {/* 右側サイドバー (アクション・設定) */}
-          <CardSidebar
-            currentCard={currentCard}
-            lists={lists}
-            allLabels={allLabels}
-            dueDate={dueDate}
-            isDueComplete={isDueComplete}
-            dateInputRef={dateInputRef}
-            showAddChecklist={showAddChecklist}
-            newChecklistTitle={newChecklistTitle}
-            showCopyDialog={showCopyDialog}
-            targetCopyListId={targetCopyListId}
-            onCoverUpload={(file) => void handleCoverUpload(file)}
-            onClearCover={() => void handleClearCover()}
-            onPreviewImage={(url) => setPreviewImageUrl(url)}
-            onClearDueDate={() => void handleDueDateChange('')}
-            onDateChange={handleDateChange}
-            onTimeChange={handleTimeChange}
-            onSetQuickDue={setQuickDue}
-            onDueCompleteToggle={() => void handleDueCompleteToggle()}
-            onToggleLabel={(labelId) => void handleToggleLabel(labelId)}
-            onShowAddChecklistChange={setShowAddChecklist}
-            onNewChecklistTitleChange={setNewChecklistTitle}
-            onAddChecklist={() => void handleAddChecklist()}
-            onShowCopyDialogChange={setShowCopyDialog}
-            onTargetCopyListIdChange={setTargetCopyListId}
-            onCopyCard={() => void handleCopyCard()}
-            onArchiveCard={() => void handleArchive()}
-          />
+          {!isZenMode && (
+            <CardSidebar
+              currentCard={currentCard}
+              lists={lists}
+              allLabels={allLabels}
+              dueDate={dueDate}
+              isDueComplete={isDueComplete}
+              dateInputRef={dateInputRef}
+              showAddChecklist={showAddChecklist}
+              newChecklistTitle={newChecklistTitle}
+              showCopyDialog={showCopyDialog}
+              targetCopyListId={targetCopyListId}
+              onCoverUpload={(file) => void handleCoverUpload(file)}
+              onClearCover={() => void handleClearCover()}
+              onPreviewImage={(url) => setPreviewImageUrl(url)}
+              onClearDueDate={() => void handleDueDateChange('')}
+              onDateChange={handleDateChange}
+              onTimeChange={handleTimeChange}
+              onSetQuickDue={setQuickDue}
+              onDueCompleteToggle={() => void handleDueCompleteToggle()}
+              onToggleLabel={(labelId) => void handleToggleLabel(labelId)}
+              onShowAddChecklistChange={setShowAddChecklist}
+              onNewChecklistTitleChange={setNewChecklistTitle}
+              onAddChecklist={() => void handleAddChecklist()}
+              onShowCopyDialogChange={setShowCopyDialog}
+              onTargetCopyListIdChange={setTargetCopyListId}
+              onCopyCard={() => void handleCopyCard()}
+              onArchiveCard={() => void handleArchive()}
+            />
+          )}
         </div>
       </div>
 

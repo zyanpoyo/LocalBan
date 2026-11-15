@@ -44,6 +44,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
     title: 'カード詳細モーダル内操作',
     icon: <FileEdit className="w-4 h-4 text-indigo-600" />,
     items: [
+      { keys: ['Ctrl', 'Shift', 'F'], description: '説明欄の集中執筆（Zen）モードを切り替え' },
       { keys: ['Ctrl', 'Shift', 'P'], description: '説明文の「編集 ⇄ プレビュー」を切り替え' },
       { keys: ['Ctrl', 'Enter'], description: '説明文の変更を保存' },
       { keys: ['e'], description: '説明文の編集モードを開始してフォーカス' },

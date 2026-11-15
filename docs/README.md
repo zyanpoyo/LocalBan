@@ -33,13 +33,14 @@ Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクラ�
 ### 3. [キーボードショートカット操作ガイド (keyboard_shortcuts.md)](keyboard_shortcuts.md)
 - **カード作成・保存フロー**: <kbd>c</kbd> / <kbd>n</kbd> / <kbd>1〜9</kbd> での作成開始、<kbd>Enter</kbd>（連続作成）、<kbd>Ctrl+Enter</kbd>（保存終了）、<kbd>Shift+Enter</kbd>（保存＋詳細展開）、IME変換保護
 - **ボードナビゲーション**: 矢印キー（<kbd>←</kbd><kbd>→</kbd> カラム切替、<kbd>↑</kbd><kbd>↓</kbd> カード選択・自動スクロール）、<kbd>Enter</kbd>/<kbd>Space</kbd> 詳細展開
-- **詳細モーダル内操作**: <kbd>Ctrl+Shift+P</kbd>（編集/プレビュー切替）、<kbd>Ctrl+Enter</kbd>（保存）、<kbd>e</kbd> / <kbd>d</kbd> / <kbd>t</kbd> / <kbd>c</kbd> / <kbd>a</kbd> クイック操作、段階的 <kbd>Escape</kbd> 処理
+- **詳細モーダル内操作**: <kbd>Ctrl+Shift+F</kbd>（集中執筆モード切替）、<kbd>Ctrl+Shift+P</kbd>（編集/プレビュー切替）、<kbd>Ctrl+Enter</kbd>（保存）、<kbd>e</kbd> / <kbd>d</kbd> / <kbd>t</kbd> / <kbd>c</kbd> / <kbd>a</kbd> クイック操作、段階的 <kbd>Escape</kbd> 処理
 - **ヘルプ表示**: <kbd>?</kbd> キーによるショートカット一覧モーダル
 
 ### 4. [Markdown記法・ショートカットキー対応表 (markdown_shortcuts.md)](markdown_shortcuts.md)
-- **テキスト装飾・リンク・コードのショートカットキー対応表**: 太字、斜体、取り消し線、インラインコード、コードブロック、リンク挿入、プレビュー切替（`Ctrl+Shift+P`）、保存（`Ctrl+Enter`）
+- **テキスト装飾・構造化・リンク・コード**: 見出し（H1〜H3）、引用、区切り線、テーブル、太字、斜体、取り消し線、インラインコード、コードブロック、リンク挿入、箇条書き・チェックボックス、プレビュー切替（`Ctrl+Shift+P`）、保存（`Ctrl+Enter`）
+- **集中執筆（Zen）モード & 長文サポート**: 集中モード切替（`Ctrl+Shift+F`）、左右2分割リアルタイムプレビュー、開閉式見出しアウトライン（目次）パネル
 - **Qiita互換 ノート記法（`:::note info` / `warn` / `alert`）**: 3種類のコールアウト表示と専用ショートカットキー（`Ctrl+Shift+1`〜`3`）
-- **フォーマットツールバー & ヘルプポップオーバー**: ワンクリック装飾挿入とショートカット一覧表示
+- **フォーマットツールバー & ヘルプポップオーバー**: ワンクリック装飾・構造化挿入とショートカット一覧表示
 
 ### 5. [CI/CD・脆弱性＆ライセンス監査パイプライン設計 (architecture/cicd_security_design.md)](architecture/cicd_security_design.md)
 - **全体パイプライン構成図**: GitHub Dependabot 自動監視、ローカル統合監査スクリプト、モジュール生成パイプラインの連携図
