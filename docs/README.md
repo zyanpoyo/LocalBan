@@ -33,7 +33,7 @@ Tauri v2 (Full Rust) による高速・軽量な独立デスクトップクラ�
 ### 3. [キーボードショートカット操作ガイド (keyboard_shortcuts.md)](keyboard_shortcuts.md)
 - **カード作成・保存フロー**: <kbd>c</kbd> / <kbd>n</kbd> / <kbd>1〜9</kbd> での作成開始、<kbd>Enter</kbd>（連続作成）、<kbd>Ctrl+Enter</kbd>（保存終了）、<kbd>Shift+Enter</kbd>（保存＋詳細展開）、IME変換保護
 - **ボードナビゲーション**: 矢印キー（<kbd>←</kbd><kbd>→</kbd> カラム切替、<kbd>↑</kbd><kbd>↓</kbd> カード選択・自動スクロール）、<kbd>Enter</kbd>/<kbd>Space</kbd> 詳細展開
-- **詳細モーダル内操作**: <kbd>Ctrl+Shift+F</kbd>（集中執筆モード切替）、<kbd>Ctrl+Shift+P</kbd>（編集/プレビュー切替）、<kbd>Ctrl+Enter</kbd>（保存）、<kbd>e</kbd> / <kbd>d</kbd> / <kbd>t</kbd> / <kbd>c</kbd> / <kbd>a</kbd> クイック操作、段階的 <kbd>Escape</kbd> 処理
+- **詳細モーダル内操作**: <kbd>Ctrl+Shift+F</kbd>（集中執筆モード切替）、<kbd>Ctrl+Shift+P</kbd>（編集/プレビュー切替）、<kbd>Ctrl+Enter</kbd>（保存してプレビューへ戻る）、<kbd>e</kbd> / <kbd>d</kbd> / <kbd>t</kbd> / <kbd>c</kbd> / <kbd>a</kbd> クイック操作、段階的 <kbd>Escape</kbd> 処理
 - **ヘルプ表示**: <kbd>?</kbd> キーによるショートカット一覧モーダル
 
 ### 4. [Markdown記法・ショートカットキー対応表 (markdown_shortcuts.md)](markdown_shortcuts.md)

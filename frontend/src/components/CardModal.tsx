@@ -75,7 +75,7 @@ export const CardModal: React.FC<CardModalProps> = ({
     debounceMs: 500,
   });
 
-  const [descMode, setDescMode] = useState<DescViewMode>('edit');
+  const [descMode, setDescMode] = useState<DescViewMode>('preview');
   const [isZenMode, setIsZenMode] = useState(false);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
@@ -107,6 +107,12 @@ export const CardModal: React.FC<CardModalProps> = ({
     setDueDate(toLocalDatetimeString(card.due_date));
     setIsDueComplete(card.is_due_complete);
   }, [card, isEditingTitle]);
+
+  useEffect(() => {
+    setDescMode('preview');
+    setIsEditingDesc(false);
+    setShowShortcutHelp(false);
+  }, [card.id]);
 
   // 外部エディタ（Watcher）での添付ファイル更新・新規追加のリアルタイム反映
   useEffect(() => {
@@ -222,10 +228,12 @@ export const CardModal: React.FC<CardModalProps> = ({
     setIsEditingTitle(false);
   };
 
-  // 説明文の即時フラッシュ保存
+  // 説明文の即時フラッシュ保存してプレビューへ戻る
   const handleSaveDescription = async () => {
     await flushSave();
     setIsEditingDesc(false);
+    setDescMode('preview');
+    setShowShortcutHelp(false);
   };
 
   const selectDescMode = (mode: DescViewMode) => {
@@ -513,9 +521,9 @@ export const CardModal: React.FC<CardModalProps> = ({
         return;
       }
 
-      // 2. Ctrl+Enter: 説明文の変更を即時フラッシュ保存
+      // 2. Ctrl+Enter: 説明文の変更を即時フラッシュ保存してプレビューへ戻る
       if (isMod && !e.shiftKey && !e.altKey && e.key === 'Enter') {
-        if (isEditingDesc || description !== (currentCard.description || '')) {
+        if (isEditingDesc || descMode !== 'preview' || description !== (currentCard.description || '')) {
           e.preventDefault();
           void handleSaveDescription();
           return;

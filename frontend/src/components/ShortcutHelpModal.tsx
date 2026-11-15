@@ -46,7 +46,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
     items: [
       { keys: ['Ctrl', 'Shift', 'F'], description: '説明欄の集中執筆（Zen）モードを切り替え' },
       { keys: ['Ctrl', 'Shift', 'P'], description: '説明文の「編集 ⇄ プレビュー」を切り替え' },
-      { keys: ['Ctrl', 'Enter'], description: '説明文の変更を保存' },
+      { keys: ['Ctrl', 'Enter'], description: '説明文の変更を保存してプレビューに戻る' },
       { keys: ['e'], description: '説明文の編集モードを開始してフォーカス' },
       { keys: ['d'], description: '期限日（Due Date）入力にフォーカス' },
       { keys: ['t', '-'], description: 'チェックリスト追加フォームを開く' },
